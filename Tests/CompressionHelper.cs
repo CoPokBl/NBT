@@ -1,0 +1,22 @@
+using System.IO.Compression;
+
+namespace Tests;
+
+public static class CompressionHelper {
+    
+    public static byte[] DecompressZlib(byte[] inputData) {
+        using MemoryStream input = new(inputData);
+        using ZLibStream zlibStream = new(input, CompressionMode.Decompress);
+        using MemoryStream output = new();
+        zlibStream.CopyTo(output);
+        return output.ToArray();
+    }
+
+    public static byte[] CompressZLib(ReadOnlySpan<byte> inputData, CompressionLevel compressionLevel = CompressionLevel.Optimal) {
+        using MemoryStream output = new();
+        using (ZLibStream zlibStream = new(output, compressionLevel, leaveOpen: true)) {
+            zlibStream.Write(inputData);
+        }
+        return output.ToArray();
+    }
+}
