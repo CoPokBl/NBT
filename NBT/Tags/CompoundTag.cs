@@ -5,7 +5,7 @@ namespace NBT.Tags;
 /// </summary>
 /// <param name="name">It's name if used as a child of another compound tag, otherwise it should be null.</param>
 /// <param name="children">Child properties, should all have names, null values are ignored.</param>
-public class CompoundTag(string? name, params INbtTag?[] children) : INbtTag<CompoundTag> {
+public class CompoundTag(string? name, params INbtTag?[] children) : INbtTag<CompoundTag>, IEquatable<CompoundTag> {
     /// <summary>Child properties, should all have names, null values are ignored.</summary>
     public INbtTag?[] Children { get; } = children;
     public string? Name { get; } = name;
@@ -67,5 +67,60 @@ public class CompoundTag(string? name, params INbtTag?[] children) : INbtTag<Com
             builder.Write(child.Serialise());
         }
         return builder.Write(NbtTagPrefix.End).ToArray();
+    }
+
+    public bool Equals(CompoundTag? other) {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        if (Name != other.Name) return false;
+        
+        // Get non-null children for comparison
+        INbtTag[] thisChildren = Children.Where(c => c != null).ToArray()!;
+        INbtTag[] otherChildren = other.Children.Where(c => c != null).ToArray()!;
+        
+        if (thisChildren.Length != otherChildren.Length) return false;
+        
+        // Compare using ChildrenMap for name-based lookup
+        foreach (INbtTag child in thisChildren) {
+            string? childName = child.GetName();
+            if (childName == null) return false;
+            
+            if (!other.ChildrenMap.TryGetValue(childName, out INbtTag? otherChild)) {
+                return false;
+            }
+            
+            if (!child.Equals(otherChild)) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    public override bool Equals(object? obj) {
+        if (obj is null) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != GetType()) return false;
+        return Equals((CompoundTag)obj);
+    }
+
+    public override int GetHashCode() {
+        HashCode hash = new();
+        hash.Add(Name);
+        foreach (INbtTag? child in Children) {
+            if (child != null) {
+                hash.Add(child);
+            }
+        }
+        return hash.ToHashCode();
+    }
+
+    public static bool operator ==(CompoundTag? left, CompoundTag? right) {
+        if (left is null) return right is null;
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(CompoundTag? left, CompoundTag? right) {
+        return !(left == right);
     }
 }

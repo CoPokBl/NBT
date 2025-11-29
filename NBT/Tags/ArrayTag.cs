@@ -5,7 +5,7 @@ namespace NBT.Tags;
 /// The type must be one of the supported types: int, long, or sbyte.
 /// </summary>
 /// <typeparam name="T">One of: int, long, or sbyte.</typeparam>
-public class ArrayTag<T> : INbtTag<ArrayTag<T>> {
+public class ArrayTag<T> : INbtTag<ArrayTag<T>>, IEquatable<ArrayTag<T>> {
     // ReSharper disable once StaticMemberInGenericType
     private static readonly Type[] SupportedTypes = [
         typeof(int), typeof(long), typeof(sbyte)
@@ -62,5 +62,45 @@ public class ArrayTag<T> : INbtTag<ArrayTag<T>> {
             }
         }
         return b.ToArray();
+    }
+
+    public bool Equals(ArrayTag<T>? other) {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        if (Name != other.Name) return false;
+        if (Values.Length != other.Values.Length) return false;
+        
+        for (int i = 0; i < Values.Length; i++) {
+            if (!EqualityComparer<T>.Default.Equals(Values[i], other.Values[i])) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    public override bool Equals(object? obj) {
+        if (obj is null) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != GetType()) return false;
+        return Equals((ArrayTag<T>)obj);
+    }
+
+    public override int GetHashCode() {
+        HashCode hash = new();
+        hash.Add(Name);
+        foreach (T value in Values) {
+            hash.Add(value);
+        }
+        return hash.ToHashCode();
+    }
+
+    public static bool operator ==(ArrayTag<T>? left, ArrayTag<T>? right) {
+        if (left is null) return right is null;
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(ArrayTag<T>? left, ArrayTag<T>? right) {
+        return !(left == right);
     }
 }
