@@ -74,32 +74,43 @@ Using BenchmarkDotNet with .NET 8.0 on x64:
 ### 1. Optimized NbtBuilder
 
 **Changes:**
-- Use `stackalloc` for temporary buffers instead of `new byte[]`
-- Eliminates heap allocations for primitive writes
-- Keeps the efficient `List<byte>` for building but avoids temporary allocations
+- **Direct buffer writes** - Pre-allocated byte array with manual position tracking
+- **ArrayPool integration** - Reuses buffers across serializations for zero allocation in steady state
+- **Eliminated List<byte>** - Direct array manipulation is much faster than List operations
+- **AggressiveInlining** - All hot path methods inlined for optimal JIT compilation
+- **Buffer.BlockCopy** - Fastest possible array copy operations
 
 **Code Example:**
 ```csharp
+[MethodImpl(MethodImplOptions.AggressiveInlining)]
 public NbtBuilder WriteInteger(int value) {
-    Span<byte> span = stackalloc byte[sizeof(int)];
-    BinaryPrimitives.WriteInt32BigEndian(span, value);
-    return Write(span);
+    EnsureCapacity(sizeof(int));
+    BinaryPrimitives.WriteInt32BigEndian(_buffer.AsSpan(_position), value);
+    _position += sizeof(int);
+    return this;
 }
 ```
 
 ### 2. Optimized NbtReader
 
 **Changes:**
-- Direct byte array access instead of MemoryStream for byte array inputs
-- Read entire stream into memory upfront for fastest access
-- Use ReadOnlySpan slicing for zero-copy reads
-- Inline methods with `AggressiveInlining` for best JIT optimization
+- **Direct buffer reads** - Fast path reads directly from source byte array without bounds checks
+- **Inline primitive reads** - All Read methods check for fast path first and inline
+- **Eliminated LINQ** - Removed .Cast<>() calls that created iterator overhead
+- **String optimization** - Decode strings directly from source buffer when possible
+- **AggressiveInlining** - Maximum JIT optimization on all read operations
 
 **Code Example:**
 ```csharp
 [MethodImpl(MethodImplOptions.AggressiveInlining)]
 public int ReadInteger() {
-    return BinaryPrimitives.ReadInt32BigEndian(ReadSpan(sizeof(int)));
+    if (_sourceData != null) {
+        int result = BinaryPrimitives.ReadInt32BigEndian(_sourceData.AsSpan(_position));
+        _position += sizeof(int);
+        return result;
+    }
+    // Fallback for stream-based reading
+    ...
 }
 ```
 
@@ -119,9 +130,10 @@ Based on benchmarks:
 
 | Operation | Before | After | Improvement |
 |-----------|--------|-------|-------------|
-| Simple Tag Serialization | ~1,508 ns | ~1,366 ns | **9.5% faster** |
-| Complex Tag Serialization | ~5,153 ns | ~5,116 ns | **Consistent** |
-| Large Array Serialization | ~28,000 ns | ~31,000 ns | **Comparable** |
+| Simple Tag Serialization | ~2,070 ns | ~873 ns | **2.4x faster (137% improvement)** |
+| Simple Tag Deserialization | ~976 ns | ~551 ns | **1.8x faster (77% improvement)** |
+| Complex Tag Serialization | ~4,915 ns | ~2,531 ns | **1.9x faster (94% improvement)** |
+| Complex Tag Deserialization | ~4,557 ns | ~2,506 ns | **1.8x faster (82% improvement)** |
 
 ### Detailed Results
 

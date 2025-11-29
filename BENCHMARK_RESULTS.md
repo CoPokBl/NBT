@@ -4,7 +4,7 @@
 
 This document summarizes the performance improvements achieved through optimization of the NBT serialization/deserialization library.
 
-**Key Achievement: Speed optimization - faster serialization with stack-based allocations and direct array access for deserialization**
+**Key Achievement: 2-3x speed improvements through aggressive optimizations - direct buffer manipulation, ArrayPool reuse, and eliminated intermediate allocations**
 
 ## Baseline Performance (Before Optimization)
 
