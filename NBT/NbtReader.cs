@@ -6,21 +6,21 @@ using NBT.Tags;
 namespace NBT;
 
 public class NbtReader {
-    private Stream _input;
+    private Stream? _input;
     private byte[]? _sourceData;
     private int _position;
     private readonly NbtCompressionType _compression;
 
     public NbtReader(Stream input, NbtCompressionType compression = NbtCompressionType.None) {
-        _input = input;
+        _input = input ?? throw new ArgumentNullException(nameof(input));
         _compression = compression;
     }
 
     public NbtReader(byte[] data, NbtCompressionType compression = NbtCompressionType.None) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
         _sourceData = data;
         _position = 0;
         _compression = compression;
-        _input = null!; // Will be set if needed
     }
 
     /// <summary>
@@ -44,8 +44,10 @@ public class NbtReader {
                 if (_sourceData != null) {
                     _input = DecompressZlib(new MemoryStream(_sourceData));
                     _sourceData = null; // Switch to stream mode
-                } else {
+                } else if (_input != null) {
                     _input = DecompressZlib(_input);
+                } else {
+                    throw new InvalidOperationException("No input data available for decompression");
                 }
                 break;
             
@@ -65,13 +67,15 @@ public class NbtReader {
                 newData[^1] = NbtTagPrefix.End;
                 _sourceData = newData;
                 _position = 0;
-            } else {
+            } else if (_input != null) {
                 MemoryStream ms = new();
                 ms.WriteByte(NbtTagPrefix.Compound);
                 _input.CopyTo(ms);
                 ms.WriteByte(NbtTagPrefix.End);
                 ms.Position = 0;
                 _input = ms;
+            } else {
+                throw new InvalidOperationException("No input data available for implied root processing");
             }
         }
         
@@ -176,6 +180,10 @@ public class NbtReader {
             return _sourceData[_position++];
         }
         
+        if (_input == null) {
+            throw new InvalidOperationException("No input data available");
+        }
+        
         int b = _input.ReadByte();
         if (b == -1) {
             throw new EndOfStreamException("Reached end of stream while reading NBT data.");
@@ -193,6 +201,10 @@ public class NbtReader {
             return;
         }
         
+        if (_input == null) {
+            throw new InvalidOperationException("No input data available");
+        }
+        
         int bytesRead = _input.Read(destination);
         if (bytesRead < destination.Length) {
             throw new EndOfStreamException($"Expected to read {destination.Length} bytes, but only read {bytesRead} bytes.");
@@ -208,6 +220,10 @@ public class NbtReader {
             Array.Copy(_sourceData, _position, result, 0, count);
             _position += count;
             return result;
+        }
+        
+        if (_input == null) {
+            throw new InvalidOperationException("No input data available");
         }
         
         byte[] buffer = new byte[count];

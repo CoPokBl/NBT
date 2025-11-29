@@ -18,18 +18,21 @@ public class NbtBuilder {
     }
     
     public byte[] ToArray() {
+        // Only return buffer directly if we own it and it's exactly the right size
         if (_position == _buffer.Length && !_usingArrayPool) {
-            // Perfect size match, can return buffer directly if not from pool
             byte[] perfectMatch = _buffer;
             _buffer = Array.Empty<byte>();
             return perfectMatch;
         }
         
+        // Otherwise, allocate exact-sized result array
         byte[] result = new byte[_position];
         Array.Copy(_buffer, 0, result, 0, _position);
         
+        // Return pooled buffer if we were using ArrayPool
         if (_usingArrayPool) {
             ArrayPool<byte>.Shared.Return(_buffer);
+            _usingArrayPool = false;
         }
         
         _buffer = Array.Empty<byte>();
