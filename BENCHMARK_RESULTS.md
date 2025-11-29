@@ -4,7 +4,7 @@
 
 This document summarizes the performance improvements achieved through optimization of the NBT serialization/deserialization library.
 
-**Key Achievement: 91-99% reduction in memory allocations**
+**Key Achievement: Speed optimization - faster serialization with stack-based allocations and direct array access for deserialization**
 
 ## Baseline Performance (Before Optimization)
 

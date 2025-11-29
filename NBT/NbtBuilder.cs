@@ -1,105 +1,43 @@
-using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
 
 namespace NBT;
 
 public class NbtBuilder {
-    private byte[] _buffer;
-    private int _position;
-    private bool _usingArrayPool;
-    private const int InitialCapacity = 256;
-    private const int ArrayPoolThreshold = 1024; // Only use ArrayPool for buffers larger than this
-    
-    public NbtBuilder() {
-        _buffer = new byte[InitialCapacity];
-        _position = 0;
-        _usingArrayPool = false;
-    }
+    private readonly List<byte> _data = [];
     
     public byte[] ToArray() {
-        // Only return buffer directly if we own it and it's exactly the right size
-        if (_position == _buffer.Length && !_usingArrayPool) {
-            byte[] perfectMatch = _buffer;
-            _buffer = Array.Empty<byte>();
-            return perfectMatch;
-        }
-        
-        // Otherwise, allocate exact-sized result array
-        byte[] result = new byte[_position];
-        Array.Copy(_buffer, 0, result, 0, _position);
-        
-        // Return pooled buffer if we were using ArrayPool
-        if (_usingArrayPool) {
-            ArrayPool<byte>.Shared.Return(_buffer);
-            _usingArrayPool = false;
-        }
-        
-        _buffer = Array.Empty<byte>();
-        return result;
-    }
-    
-    private void EnsureCapacity(int additionalBytes) {
-        int requiredCapacity = _position + additionalBytes;
-        if (requiredCapacity <= _buffer.Length) {
-            return;
-        }
-        
-        int newCapacity = Math.Max(_buffer.Length * 2, requiredCapacity);
-        byte[] newBuffer;
-        
-        // Use ArrayPool only for large buffers
-        if (newCapacity >= ArrayPoolThreshold && !_usingArrayPool) {
-            newBuffer = ArrayPool<byte>.Shared.Rent(newCapacity);
-            Array.Copy(_buffer, 0, newBuffer, 0, _position);
-            _usingArrayPool = true;
-        } else if (_usingArrayPool) {
-            newBuffer = ArrayPool<byte>.Shared.Rent(newCapacity);
-            Array.Copy(_buffer, 0, newBuffer, 0, _position);
-            ArrayPool<byte>.Shared.Return(_buffer);
-        } else {
-            newBuffer = new byte[newCapacity];
-            Buffer.BlockCopy(_buffer, 0, newBuffer, 0, _position);
-        }
-        
-        _buffer = newBuffer;
+        return _data.ToArray();
     }
 
     public NbtBuilder WriteDouble(double value) {
-        EnsureCapacity(sizeof(double));
-        BinaryPrimitives.WriteDoubleBigEndian(_buffer.AsSpan(_position, sizeof(double)), value);
-        _position += sizeof(double);
-        return this;
+        Span<byte> span = stackalloc byte[sizeof(double)];
+        BinaryPrimitives.WriteDoubleBigEndian(span, value);
+        return Write(span);
     }
 
     public NbtBuilder WriteFloat(float value) {
-        EnsureCapacity(sizeof(float));
-        BinaryPrimitives.WriteSingleBigEndian(_buffer.AsSpan(_position, sizeof(float)), value);
-        _position += sizeof(float);
-        return this;
+        Span<byte> span = stackalloc byte[sizeof(float)];
+        BinaryPrimitives.WriteSingleBigEndian(span, value);
+        return Write(span);
     }
 
     public NbtBuilder Write(byte[] value) {
-        EnsureCapacity(value.Length);
-        Array.Copy(value, 0, _buffer, _position, value.Length);
-        _position += value.Length;
-        return this;
+        return Write((IEnumerable<byte>)value);
     }
 
-    public NbtBuilder Write(ReadOnlySpan<byte> value) {
-        EnsureCapacity(value.Length);
-        value.CopyTo(_buffer.AsSpan(_position));
-        _position += value.Length;
+    public NbtBuilder Write(IEnumerable<byte> value) {
+        _data.AddRange(value);
         return this;
     }
 
     public NbtBuilder Write(Span<byte> value) {
-        return Write((ReadOnlySpan<byte>)value);
+        _data.AddRange(value);
+        return this;
     }
     
     public NbtBuilder Write(byte value) {
-        EnsureCapacity(1);
-        _buffer[_position++] = value;
+        _data.Add(value);
         return this;
     }
 
@@ -121,43 +59,35 @@ public class NbtBuilder {
         int length = Encoding.UTF8.GetByteCount(value);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(length, ushort.MaxValue);
 
-        EnsureCapacity(sizeof(ushort) + length);
+        Span<byte> span = stackalloc byte[sizeof(ushort)];
+        BinaryPrimitives.WriteUInt16BigEndian(span, (ushort)length);
+        byte[] textBytes = Encoding.UTF8.GetBytes(value);
         
-        // Write length
-        BinaryPrimitives.WriteUInt16BigEndian(_buffer.AsSpan(_position, sizeof(ushort)), (ushort)length);
-        _position += sizeof(ushort);
-        
-        // Write string bytes directly to buffer
-        int bytesWritten = Encoding.UTF8.GetBytes(value, _buffer.AsSpan(_position));
-        _position += bytesWritten;
-        
+        Write(span);
+        Write(textBytes);
         return this;
     }
 
     public NbtBuilder WriteInteger(int value) {
-        EnsureCapacity(sizeof(int));
-        BinaryPrimitives.WriteInt32BigEndian(_buffer.AsSpan(_position, sizeof(int)), value);
-        _position += sizeof(int);
-        return this;
+        Span<byte> span = stackalloc byte[sizeof(int)];
+        BinaryPrimitives.WriteInt32BigEndian(span, value);
+        return Write(span);
     }
     
     public NbtBuilder WriteLong(long value) {
-        EnsureCapacity(sizeof(long));
-        BinaryPrimitives.WriteInt64BigEndian(_buffer.AsSpan(_position, sizeof(long)), value);
-        _position += sizeof(long);
-        return this;
+        Span<byte> span = stackalloc byte[sizeof(long)];
+        BinaryPrimitives.WriteInt64BigEndian(span, value);
+        return Write(span);
     }
     
     public NbtBuilder WriteShort(short value) {
-        EnsureCapacity(sizeof(short));
-        BinaryPrimitives.WriteInt16BigEndian(_buffer.AsSpan(_position, sizeof(short)), value);
-        _position += sizeof(short);
-        return this;
+        Span<byte> span = stackalloc byte[sizeof(short)];
+        BinaryPrimitives.WriteInt16BigEndian(span, value);
+        return Write(span);
     }
     
     public NbtBuilder WriteByte(sbyte value) {
-        EnsureCapacity(1);
-        _buffer[_position++] = (byte)(value < 0 ? 256 + value : value);
+        _data.Add((byte)(value < 0 ? 256 + value : value));
         return this;
     }
 }
