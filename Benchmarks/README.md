@@ -72,25 +72,22 @@ Each scenario tests:
 
 ### Key Metrics
 
-- **Mean** - Average execution time per operation
+- **Mean** - Average execution time per operation (primary metric)
 - **Error** - Standard error of the mean
 - **StdDev** - Standard deviation of measurements
-- **Allocated** - Bytes allocated per operation (important for GC pressure)
-- **Gen0/Gen1/Gen2** - Garbage collection statistics
 
 ### Reading the Output
 
 Example output:
 ```
-| Method                         | Mean      | Error    | Allocated |
-|------------------------------- |----------:|---------:|----------:|
-| Serialize Simple Tag           | 703.5 ns  | 4.07 ns  | 1544 B    |
-| Deserialize Simple Tag         | 395.7 ns  | 4.72 ns  | 960 B     |
+| Method                         | Mean      | Error    |
+|------------------------------- |----------:|---------:|
+| Serialize Simple Tag           | 703.5 ns  | 4.07 ns  |
+| Deserialize Simple Tag         | 395.7 ns  | 4.72 ns  |
 ```
 
-- Lower `Mean` = faster performance
-- Lower `Allocated` = less GC pressure
-- Lower `Gen0/1/2` = fewer garbage collections
+- Lower `Mean` = faster performance (primary goal)
+- Lower `Error` and `StdDev` = more consistent performance
 
 ## Viewing Detailed Results
 
@@ -115,7 +112,7 @@ When optimizing code:
 2. Make your optimization changes
 3. Run quick benchmark again to verify improvement
 4. Run full benchmark suite before committing: `dotnet run -c Release`
-5. Compare `Allocated` column carefully - memory is often more important than raw speed
+5. Focus on reducing `Mean` execution time - speed is the primary metric
 
 ## Troubleshooting
 
