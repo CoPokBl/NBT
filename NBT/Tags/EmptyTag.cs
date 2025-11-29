@@ -1,6 +1,6 @@
 namespace NBT.Tags;
 
-public class EmptyTag : INbtTag<EmptyTag> {
+public class EmptyTag : INbtTag<EmptyTag>, IEquatable<EmptyTag> {
     
     public byte GetPrefix() {
         return NbtTagPrefix.End;
@@ -22,5 +22,26 @@ public class EmptyTag : INbtTag<EmptyTag> {
         return new NbtBuilder()
             .Write(GetPrefix())
             .ToArray();
+    }
+
+    public bool Equals(EmptyTag? other) {
+        return other is not null;
+    }
+
+    public override bool Equals(object? obj) {
+        return obj is EmptyTag;
+    }
+
+    public override int GetHashCode() {
+        return 0;  // All EmptyTag instances are considered equal
+    }
+
+    public static bool operator ==(EmptyTag? left, EmptyTag? right) {
+        if (left is null) return right is null;
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(EmptyTag? left, EmptyTag? right) {
+        return !(left == right);
     }
 }

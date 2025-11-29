@@ -1,6 +1,6 @@
 namespace NBT.Tags;
 
-public class DoubleTag(string? name, double value) : INbtTag<DoubleTag> {
+public class DoubleTag(string? name, double value) : INbtTag<DoubleTag>, IEquatable<DoubleTag> {
     public string? Name { get; } = name;
     public double Value { get; } = value;
 
@@ -20,5 +20,31 @@ public class DoubleTag(string? name, double value) : INbtTag<DoubleTag> {
     
     public byte[] Serialise(bool noType = false) {
         return new NbtBuilder().WriteType(GetPrefix(), noType).WriteName(Name).WriteDouble(Value).ToArray();
+    }
+
+    public bool Equals(DoubleTag? other) {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Name == other.Name && Value.Equals(other.Value);
+    }
+
+    public override bool Equals(object? obj) {
+        if (obj is null) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != GetType()) return false;
+        return Equals((DoubleTag)obj);
+    }
+
+    public override int GetHashCode() {
+        return HashCode.Combine(Name, Value);
+    }
+
+    public static bool operator ==(DoubleTag? left, DoubleTag? right) {
+        if (left is null) return right is null;
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(DoubleTag? left, DoubleTag? right) {
+        return !(left == right);
     }
 }
