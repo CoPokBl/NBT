@@ -33,7 +33,7 @@ public class EmptyTag : INbtTag<EmptyTag>, IEquatable<EmptyTag> {
     }
 
     public override int GetHashCode() {
-        return 0;  // All EmptyTag instances are considered equal
+        return typeof(EmptyTag).GetHashCode();  // All EmptyTag instances are considered equal
     }
 
     public static bool operator ==(EmptyTag? left, EmptyTag? right) {
