@@ -5,10 +5,23 @@ using NBT.Tags;
 
 namespace NBT;
 
-public class NbtReader(Stream input, NbtCompressionType compression = NbtCompressionType.None) {
-    private Stream _input = input;
+public class NbtReader {
+    private Stream _input;
+    private byte[]? _sourceData;
+    private int _position;
+    private readonly NbtCompressionType _compression;
 
-    public NbtReader(byte[] data, NbtCompressionType compression = NbtCompressionType.None) : this(new MemoryStream(data), compression) { }
+    public NbtReader(Stream input, NbtCompressionType compression = NbtCompressionType.None) {
+        _input = input;
+        _compression = compression;
+    }
+
+    public NbtReader(byte[] data, NbtCompressionType compression = NbtCompressionType.None) {
+        _sourceData = data;
+        _position = 0;
+        _compression = compression;
+        _input = null!; // Will be set if needed
+    }
 
     /// <summary>
     /// Parses the current object's data into a tag.
@@ -22,36 +35,44 @@ public class NbtReader(Stream input, NbtCompressionType compression = NbtCompres
     /// <remarks><see cref="impliedRoot"/> is mainly used for NBT files.</remarks>
     /// <exception cref="InvalidDataException">When the data contains invalid information.</exception>
     public INbtTag ToTag(bool impliedRoot = false) {
-        switch (compression) {
+        switch (_compression) {
             case NbtCompressionType.GZip:
                 throw new NotImplementedException();
             
             case NbtCompressionType.ZLib:
                 // decompress the input stream with CompressionHelper.DecompressZlib
-                _input = DecompressZlib(_input);
+                if (_sourceData != null) {
+                    _input = DecompressZlib(new MemoryStream(_sourceData));
+                    _sourceData = null; // Switch to stream mode
+                } else {
+                    _input = DecompressZlib(_input);
+                }
                 break;
             
             case NbtCompressionType.None:
                 break;  // do nothing
             
             default:
-                throw new ArgumentOutOfRangeException(nameof(compression), compression, null);
+                throw new ArgumentOutOfRangeException(nameof(_compression), _compression, null);
         }
         
         if (impliedRoot) {
-            MemoryStream ms = new();
-            // Write the root compound tag prefix
-            ms.WriteByte(NbtTagPrefix.Compound);
-            _input.CopyTo(ms);
-            ms.WriteByte(NbtTagPrefix.End);
-            ms.Position = 0;  // reset the position to the start
-            _input = ms;
-
-            // DataWriter w = new DataWriter()
-            //     .Write(NbtTagPrefix.Compound)
-            //     .Write(_input.ReadRemaining())
-            //     .Write(NbtTagPrefix.End);
-            // _input = new DataReader(w.ToArray());
+            if (_sourceData != null) {
+                // For byte array source, create modified array
+                byte[] newData = new byte[_sourceData.Length - _position + 2];
+                newData[0] = NbtTagPrefix.Compound;
+                Array.Copy(_sourceData, _position, newData, 1, _sourceData.Length - _position);
+                newData[^1] = NbtTagPrefix.End;
+                _sourceData = newData;
+                _position = 0;
+            } else {
+                MemoryStream ms = new();
+                ms.WriteByte(NbtTagPrefix.Compound);
+                _input.CopyTo(ms);
+                ms.WriteByte(NbtTagPrefix.End);
+                ms.Position = 0;
+                _input = ms;
+            }
         }
         
         // Start by reading the tag type
@@ -148,6 +169,13 @@ public class NbtReader(Stream input, NbtCompressionType compression = NbtCompres
     }
 
     private byte Read() {
+        if (_sourceData != null) {
+            if (_position >= _sourceData.Length) {
+                throw new EndOfStreamException("Reached end of data while reading NBT data.");
+            }
+            return _sourceData[_position++];
+        }
+        
         int b = _input.ReadByte();
         if (b == -1) {
             throw new EndOfStreamException("Reached end of stream while reading NBT data.");
@@ -155,7 +183,33 @@ public class NbtReader(Stream input, NbtCompressionType compression = NbtCompres
         return (byte)b;
     }
     
+    private void ReadIntoSpan(Span<byte> destination) {
+        if (_sourceData != null) {
+            if (_position + destination.Length > _sourceData.Length) {
+                throw new EndOfStreamException($"Expected to read {destination.Length} bytes, but only {_sourceData.Length - _position} bytes available.");
+            }
+            _sourceData.AsSpan(_position, destination.Length).CopyTo(destination);
+            _position += destination.Length;
+            return;
+        }
+        
+        int bytesRead = _input.Read(destination);
+        if (bytesRead < destination.Length) {
+            throw new EndOfStreamException($"Expected to read {destination.Length} bytes, but only read {bytesRead} bytes.");
+        }
+    }
+    
     private byte[] Read(int count) {
+        if (_sourceData != null) {
+            if (_position + count > _sourceData.Length) {
+                throw new EndOfStreamException($"Expected to read {count} bytes, but only {_sourceData.Length - _position} bytes available.");
+            }
+            byte[] result = new byte[count];
+            Array.Copy(_sourceData, _position, result, 0, count);
+            _position += count;
+            return result;
+        }
+        
         byte[] buffer = new byte[count];
         int bytesRead = _input.Read(buffer, 0, count);
         if (bytesRead < count) {
@@ -229,31 +283,57 @@ public class NbtReader(Stream input, NbtCompressionType compression = NbtCompres
     }
 
     public string ReadString() {
-        // read the length
-        byte[] lenBytes = Read(sizeof(ushort));
+        Span<byte> lenBytes = stackalloc byte[sizeof(ushort)];
+        ReadIntoSpan(lenBytes);
         ushort len = BinaryPrimitives.ReadUInt16BigEndian(lenBytes);
 
-        byte[] textBytes = Read(len);
-        return Encoding.UTF8.GetString(textBytes);
+        if (len == 0) {
+            return string.Empty;
+        }
+        
+        // Use ArrayPool for larger strings to avoid LOH
+        if (len <= 256) {
+            Span<byte> textBytes = stackalloc byte[len];
+            ReadIntoSpan(textBytes);
+            return Encoding.UTF8.GetString(textBytes);
+        } else {
+            byte[] textBytes = System.Buffers.ArrayPool<byte>.Shared.Rent(len);
+            try {
+                ReadIntoSpan(textBytes.AsSpan(0, len));
+                return Encoding.UTF8.GetString(textBytes, 0, len);
+            } finally {
+                System.Buffers.ArrayPool<byte>.Shared.Return(textBytes);
+            }
+        }
     }
 
     public int ReadInteger() {
-        return BinaryPrimitives.ReadInt32BigEndian(Read(sizeof(int)));
+        Span<byte> bytes = stackalloc byte[sizeof(int)];
+        ReadIntoSpan(bytes);
+        return BinaryPrimitives.ReadInt32BigEndian(bytes);
     }
     
     public long ReadLong() {
-        return BinaryPrimitives.ReadInt64BigEndian(Read(sizeof(long)));
+        Span<byte> bytes = stackalloc byte[sizeof(long)];
+        ReadIntoSpan(bytes);
+        return BinaryPrimitives.ReadInt64BigEndian(bytes);
     }
     
     public short ReadShort() {
-        return BinaryPrimitives.ReadInt16BigEndian(Read(sizeof(short)));
+        Span<byte> bytes = stackalloc byte[sizeof(short)];
+        ReadIntoSpan(bytes);
+        return BinaryPrimitives.ReadInt16BigEndian(bytes);
     }
     
     public float ReadFloat() {
-        return BinaryPrimitives.ReadSingleBigEndian(Read(sizeof(float)));
+        Span<byte> bytes = stackalloc byte[sizeof(float)];
+        ReadIntoSpan(bytes);
+        return BinaryPrimitives.ReadSingleBigEndian(bytes);
     }
     
     public double ReadDouble() {
-        return BinaryPrimitives.ReadDoubleBigEndian(Read(sizeof(double)));
+        Span<byte> bytes = stackalloc byte[sizeof(double)];
+        ReadIntoSpan(bytes);
+        return BinaryPrimitives.ReadDoubleBigEndian(bytes);
     }
 }
