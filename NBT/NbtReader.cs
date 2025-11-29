@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
+using System.Runtime.CompilerServices;
 using System.Text;
 using NBT.Tags;
 
@@ -18,6 +19,7 @@ public class NbtReader {
 
     public NbtReader(byte[] data, NbtCompressionType compression = NbtCompressionType.None) {
         if (data == null) throw new ArgumentNullException(nameof(data));
+        // For maximum speed, convert stream to byte array upfront
         _sourceData = data;
         _position = 0;
         _compression = compression;
@@ -117,47 +119,58 @@ public class NbtReader {
     public ListTag ReadList() {
         byte type = Read();
         int length = ReadInteger();
-        INbtTag[] tags = new INbtTag[length];
 
         switch (type) {
             case NbtTagPrefix.End:  // an empty list
                 return new ListTag(null, []);
             case NbtTagPrefix.String:
-                for (int i = 0; i < length; i++) tags[i] = new StringTag(null, ReadString());
-                return new ListTag<StringTag>(null, tags.Cast<StringTag>().ToArray());
+                var stringTags = new StringTag[length];
+                for (int i = 0; i < length; i++) stringTags[i] = new StringTag(null, ReadString());
+                return new ListTag<StringTag>(null, stringTags);
             case NbtTagPrefix.Byte:
-                for (int i = 0; i < length; i++) tags[i] = new ByteTag(null, ReadByte());
-                return new ListTag<ByteTag>(null, tags.Cast<ByteTag>().ToArray());
+                var byteTags = new ByteTag[length];
+                for (int i = 0; i < length; i++) byteTags[i] = new ByteTag(null, ReadByte());
+                return new ListTag<ByteTag>(null, byteTags);
             case NbtTagPrefix.Integer:
-                for (int i = 0; i < length; i++) tags[i] = new IntegerTag(null, ReadInteger());
-                return new ListTag<IntegerTag>(null, tags.Cast<IntegerTag>().ToArray());
+                var intTags = new IntegerTag[length];
+                for (int i = 0; i < length; i++) intTags[i] = new IntegerTag(null, ReadInteger());
+                return new ListTag<IntegerTag>(null, intTags);
             case NbtTagPrefix.Long:
-                for (int i = 0; i < length; i++) tags[i] = new LongTag(null, ReadLong());
-                return new ListTag<LongTag>(null, tags.Cast<LongTag>().ToArray());
+                var longTags = new LongTag[length];
+                for (int i = 0; i < length; i++) longTags[i] = new LongTag(null, ReadLong());
+                return new ListTag<LongTag>(null, longTags);
             case NbtTagPrefix.Short:
-                for (int i = 0; i < length; i++) tags[i] = new ShortTag(null, ReadShort());
-                return new ListTag<ShortTag>(null, tags.Cast<ShortTag>().ToArray());
+                var shortTags = new ShortTag[length];
+                for (int i = 0; i < length; i++) shortTags[i] = new ShortTag(null, ReadShort());
+                return new ListTag<ShortTag>(null, shortTags);
             case NbtTagPrefix.Float:
-                for (int i = 0; i < length; i++) tags[i] = new FloatTag(null, ReadFloat());
-                return new ListTag<FloatTag>(null, tags.Cast<FloatTag>().ToArray());
+                var floatTags = new FloatTag[length];
+                for (int i = 0; i < length; i++) floatTags[i] = new FloatTag(null, ReadFloat());
+                return new ListTag<FloatTag>(null, floatTags);
             case NbtTagPrefix.Double:
-                for (int i = 0; i < length; i++) tags[i] = new DoubleTag(null, ReadDouble());
-                return new ListTag<DoubleTag>(null, tags.Cast<DoubleTag>().ToArray());
+                var doubleTags = new DoubleTag[length];
+                for (int i = 0; i < length; i++) doubleTags[i] = new DoubleTag(null, ReadDouble());
+                return new ListTag<DoubleTag>(null, doubleTags);
             case NbtTagPrefix.List:
-                for (int i = 0; i < length; i++) tags[i] = ReadList();
-                return new ListTag<ListTag>(null, tags.Cast<ListTag>().ToArray());
+                var listTags = new ListTag[length];
+                for (int i = 0; i < length; i++) listTags[i] = ReadList();
+                return new ListTag<ListTag>(null, listTags);
             case NbtTagPrefix.Integers:
-                for (int i = 0; i < length; i++) tags[i] = ReadArray(ReadInteger);
-                return new ListTag<ArrayTag<int>>(null, tags.Cast<ArrayTag<int>>().ToArray());
+                var intArrayTags = new ArrayTag<int>[length];
+                for (int i = 0; i < length; i++) intArrayTags[i] = ReadArray(ReadInteger);
+                return new ListTag<ArrayTag<int>>(null, intArrayTags);
             case NbtTagPrefix.Bytes:
-                for (int i = 0; i < length; i++) tags[i] = ReadArray(ReadByte);
-                return new ListTag<ArrayTag<sbyte>>(null, tags.Cast<ArrayTag<sbyte>>().ToArray());
+                var byteArrayTags = new ArrayTag<sbyte>[length];
+                for (int i = 0; i < length; i++) byteArrayTags[i] = ReadArray(ReadByte);
+                return new ListTag<ArrayTag<sbyte>>(null, byteArrayTags);
             case NbtTagPrefix.Longs:
-                for (int i = 0; i < length; i++) tags[i] = ReadArray(ReadLong);
-                return new ListTag<ArrayTag<long>>(null, tags.Cast<ArrayTag<long>>().ToArray());
+                var longArrayTags = new ArrayTag<long>[length];
+                for (int i = 0; i < length; i++) longArrayTags[i] = ReadArray(ReadLong);
+                return new ListTag<ArrayTag<long>>(null, longArrayTags);
             case NbtTagPrefix.Compound:
-                for (int i = 0; i < length; i++) tags[i] = ReadCompoundTag();
-                return new ListTag<CompoundTag>(null, tags.Cast<CompoundTag>().ToArray());
+                var compoundTags = new CompoundTag[length];
+                for (int i = 0; i < length; i++) compoundTags[i] = ReadCompoundTag();
+                return new ListTag<CompoundTag>(null, compoundTags);
         }
         
         throw new InvalidDataException($"Unknown type {type}");
@@ -172,11 +185,9 @@ public class NbtReader {
         return new ArrayTag<T>(null, vals);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private byte Read() {
         if (_sourceData != null) {
-            if (_position >= _sourceData.Length) {
-                throw new EndOfStreamException("Reached end of data while reading NBT data.");
-            }
             return _sourceData[_position++];
         }
         
@@ -191,11 +202,9 @@ public class NbtReader {
         return (byte)b;
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ReadIntoSpan(Span<byte> destination) {
         if (_sourceData != null) {
-            if (_position + destination.Length > _sourceData.Length) {
-                throw new EndOfStreamException($"Expected to read {destination.Length} bytes, but only {_sourceData.Length - _position} bytes available.");
-            }
             _sourceData.AsSpan(_position, destination.Length).CopyTo(destination);
             _position += destination.Length;
             return;
@@ -211,13 +220,11 @@ public class NbtReader {
         }
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private byte[] Read(int count) {
         if (_sourceData != null) {
-            if (_position + count > _sourceData.Length) {
-                throw new EndOfStreamException($"Expected to read {count} bytes, but only {_sourceData.Length - _position} bytes available.");
-            }
             byte[] result = new byte[count];
-            Array.Copy(_sourceData, _position, result, 0, count);
+            Buffer.BlockCopy(_sourceData, _position, result, 0, count);
             _position += count;
             return result;
         }
@@ -298,16 +305,30 @@ public class NbtReader {
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string ReadString() {
-        Span<byte> lenBytes = stackalloc byte[sizeof(ushort)];
-        ReadIntoSpan(lenBytes);
-        ushort len = BinaryPrimitives.ReadUInt16BigEndian(lenBytes);
+        ushort len;
+        if (_sourceData != null) {
+            len = BinaryPrimitives.ReadUInt16BigEndian(_sourceData.AsSpan(_position));
+            _position += sizeof(ushort);
+        } else {
+            Span<byte> lenBytes = stackalloc byte[sizeof(ushort)];
+            ReadIntoSpan(lenBytes);
+            len = BinaryPrimitives.ReadUInt16BigEndian(lenBytes);
+        }
 
         if (len == 0) {
             return string.Empty;
         }
         
-        // Use ArrayPool for larger strings to avoid LOH
+        // Direct decode from source buffer when possible
+        if (_sourceData != null) {
+            string result = Encoding.UTF8.GetString(_sourceData.AsSpan(_position, len));
+            _position += len;
+            return result;
+        }
+        
+        // Use stackalloc for small strings
         if (len <= 256) {
             Span<byte> textBytes = stackalloc byte[len];
             ReadIntoSpan(textBytes);
@@ -323,31 +344,61 @@ public class NbtReader {
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int ReadInteger() {
+        if (_sourceData != null) {
+            int result = BinaryPrimitives.ReadInt32BigEndian(_sourceData.AsSpan(_position));
+            _position += sizeof(int);
+            return result;
+        }
         Span<byte> bytes = stackalloc byte[sizeof(int)];
         ReadIntoSpan(bytes);
         return BinaryPrimitives.ReadInt32BigEndian(bytes);
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public long ReadLong() {
+        if (_sourceData != null) {
+            long result = BinaryPrimitives.ReadInt64BigEndian(_sourceData.AsSpan(_position));
+            _position += sizeof(long);
+            return result;
+        }
         Span<byte> bytes = stackalloc byte[sizeof(long)];
         ReadIntoSpan(bytes);
         return BinaryPrimitives.ReadInt64BigEndian(bytes);
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public short ReadShort() {
+        if (_sourceData != null) {
+            short result = BinaryPrimitives.ReadInt16BigEndian(_sourceData.AsSpan(_position));
+            _position += sizeof(short);
+            return result;
+        }
         Span<byte> bytes = stackalloc byte[sizeof(short)];
         ReadIntoSpan(bytes);
         return BinaryPrimitives.ReadInt16BigEndian(bytes);
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public float ReadFloat() {
+        if (_sourceData != null) {
+            float result = BinaryPrimitives.ReadSingleBigEndian(_sourceData.AsSpan(_position));
+            _position += sizeof(float);
+            return result;
+        }
         Span<byte> bytes = stackalloc byte[sizeof(float)];
         ReadIntoSpan(bytes);
         return BinaryPrimitives.ReadSingleBigEndian(bytes);
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double ReadDouble() {
+        if (_sourceData != null) {
+            double result = BinaryPrimitives.ReadDoubleBigEndian(_sourceData.AsSpan(_position));
+            _position += sizeof(double);
+            return result;
+        }
         Span<byte> bytes = stackalloc byte[sizeof(double)];
         ReadIntoSpan(bytes);
         return BinaryPrimitives.ReadDoubleBigEndian(bytes);
