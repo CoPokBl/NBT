@@ -17,9 +17,9 @@ public class IntegerTag(string? name, int value) : INbtTag<IntegerTag>, IEquatab
     }
 
     public INbtTag WithName(string? name) => ((INbtTag<IntegerTag>)this).WithName(name);
-    
-    public byte[] Serialise(bool noType = false) {
-        return new NbtBuilder().WriteType(GetPrefix(), noType).WriteName(Name).WriteInteger(Value).ToArray();
+
+    public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
+        return builder.WriteType(GetPrefix(), noType).WriteName(Name).WriteInteger(Value);
     }
 
     public bool Equals(IntegerTag? other) {

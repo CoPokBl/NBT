@@ -59,14 +59,14 @@ public class ListTag(string? name, INbtTag[] tags) : INbtTag<ListTag>, IEquatabl
 
     public INbtTag WithName(string? name) => ((INbtTag<ListTag>)this).WithName(name);
 
-    public byte[] Serialise(bool noType = false) {
+    public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
         byte type = Tags.Length == 0 ? NbtTagPrefix.End : Tags[0].GetPrefix();
 
-        NbtBuilder builder = new NbtBuilder().WriteType(NbtTagPrefix.List, noType).WriteName(Name).Write(type).WriteInteger(Tags.Length);
+        builder = builder.WriteType(NbtTagPrefix.List, noType).WriteName(Name).Write(type).WriteInteger(Tags.Length);
         foreach (INbtTag tag in Tags) {
-            builder.Write(tag.Serialise(true));
+            tag.Write(builder, true);
         }
-        return builder.ToArray();
+        return builder;
     }
 
     public bool Equals(ListTag? other) {

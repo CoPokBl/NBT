@@ -17,9 +17,9 @@ public class FloatTag(string? name, float value) : INbtTag<FloatTag>, IEquatable
     }
 
     public INbtTag WithName(string? name) => ((INbtTag<FloatTag>)this).WithName(name);
-    
-    public byte[] Serialise(bool noType = false) {
-        return new NbtBuilder().WriteType(GetPrefix(), noType).WriteName(Name).WriteFloat(Value).ToArray();
+
+    public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
+        return builder.WriteType(GetPrefix(), noType).WriteName(Name).WriteFloat(Value);
     }
 
     public bool Equals(FloatTag? other) {

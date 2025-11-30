@@ -40,28 +40,29 @@ public class ArrayTag<T> : INbtTag<ArrayTag<T>>, IEquatable<ArrayTag<T>> {
     }
 
     public INbtTag WithName(string? name) => ((INbtTag<ArrayTag<T>>)this).WithName(name);
-    
-    public byte[] Serialise(bool noType = false) {
-        NbtBuilder b = new NbtBuilder()
-            .WriteType(GetPrefix(), noType)
+
+    public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
+        builder.WriteType(GetPrefix(), noType)
             .WriteName(Name)
             .WriteInteger(Values.Length);
+        
         foreach (T v in Values) {
             switch (v) {
                 case int iv:
-                    b.WriteInteger(iv);
+                    builder.WriteInteger(iv);
                     break;
                 case long lv:
-                    b.WriteLong(lv);
+                    builder.WriteLong(lv);
                     break;
                 case sbyte bv:
-                    b.WriteByte(bv);
+                    builder.WriteByte(bv);
                     break;
                 default:
                     throw new ArgumentException("Unsupported type in ArrayTag: " + v!.GetType().Name);
             }
         }
-        return b.ToArray();
+        
+        return builder;
     }
 
     public bool Equals(ArrayTag<T>? other) {

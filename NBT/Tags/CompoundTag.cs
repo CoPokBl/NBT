@@ -57,16 +57,17 @@ public class CompoundTag(string? name, params INbtTag?[] children) : INbtTag<Com
         return NbtTagPrefix.Compound;
     }
 
-    public byte[] Serialise(bool noType = false) {
-        NbtBuilder builder = new NbtBuilder().WriteType(GetPrefix(), noType).WriteName(Name);  // no write start
+    public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
+        builder.WriteType(GetPrefix(), noType).WriteName(Name);  // no write start
         foreach (INbtTag? child in Children) {
             if (child == null) continue;
             if (child.GetName() == null) {
                 throw new ArgumentException("Child tags of a compound tag must have names", nameof(child));
             }
-            builder.Write(child.Serialise());
+
+            child.Write(builder);
         }
-        return builder.Write(NbtTagPrefix.End).ToArray();
+        return builder.Write(NbtTagPrefix.End);
     }
 
     public bool Equals(CompoundTag? other) {

@@ -17,9 +17,9 @@ public class StringTag(string? name, string value) : INbtTag<StringTag>, IEquata
     }
 
     public INbtTag WithName(string? name) => ((INbtTag<StringTag>)this).WithName(name);
-    
-    public byte[] Serialise(bool noType = false) {
-        return new NbtBuilder().WriteType(NbtTagPrefix.String, noType).WriteName(Name).WriteString(Value).ToArray();
+
+    public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
+        return builder.WriteType(GetPrefix(), noType).WriteName(Name).WriteString(Value);
     }
 
     public bool Equals(StringTag? other) {

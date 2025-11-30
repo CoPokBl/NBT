@@ -37,7 +37,7 @@ public interface INbtTag {
     /// <param name="name">The name to give it.</param>
     /// <returns>This tag with the given name.</returns>
     INbtTag WithName(string? name);
-    
+
     /// <summary>
     /// Serialise this NBT tag into a byte array.
     /// </summary>
@@ -46,7 +46,11 @@ public interface INbtTag {
     /// Use <see cref="GetPrefix"/> to find the type of this tag.
     /// </param>
     /// <returns>A byte array containing the serialised version of this tag with no padding.</returns>
-    byte[] Serialise(bool noType = false);
+    byte[] Serialise(bool noType = false) {
+        return Write(new NbtBuilder()).ToArray();
+    }
+
+    NbtBuilder Write(NbtBuilder builder, bool noType = false);
 
     public static string ToJsonString(INbtTag tag) {
         return JsonConvert.SerializeObject(ToJson(tag));
@@ -162,6 +166,10 @@ public interface INbtTag {
 }
 
 public static class TagExtensions {
+
+    public static byte[] Serialise(this INbtTag tag, bool noType = false) {
+        return tag.Serialise(noType);
+    }
 
     public static string GetString(this INbtTag? tag) {
         return ((StringTag)tag!).Value;

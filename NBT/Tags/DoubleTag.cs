@@ -17,9 +17,9 @@ public class DoubleTag(string? name, double value) : INbtTag<DoubleTag>, IEquata
     }
 
     public INbtTag WithName(string? name) => ((INbtTag<DoubleTag>)this).WithName(name);
-    
-    public byte[] Serialise(bool noType = false) {
-        return new NbtBuilder().WriteType(GetPrefix(), noType).WriteName(Name).WriteDouble(Value).ToArray();
+
+    public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
+        return builder.WriteType(GetPrefix(), noType).WriteName(Name).WriteDouble(Value);
     }
 
     public bool Equals(DoubleTag? other) {

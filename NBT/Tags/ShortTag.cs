@@ -17,9 +17,9 @@ public class ShortTag(string? name, short value) : INbtTag<ShortTag>, IEquatable
     }
 
     public INbtTag WithName(string? name) => ((INbtTag<ShortTag>)this).WithName(name);
-    
-    public byte[] Serialise(bool noType = false) {
-        return new NbtBuilder().WriteType(GetPrefix(), noType).WriteName(Name).WriteShort(Value).ToArray();
+
+    public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
+        return builder.WriteType(GetPrefix(), noType).WriteName(Name).WriteShort(Value);
     }
 
     public bool Equals(ShortTag? other) {
