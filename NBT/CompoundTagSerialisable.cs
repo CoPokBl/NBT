@@ -2,6 +2,11 @@ using NBT.Tags;
 
 namespace NBT;
 
+/// <summary>
+/// A class that can be serialised into a compound NBT tag.
+/// Provides methods for performing the serialisation and makes
+/// it usable as an INbtTag (effectively as its own tag type).
+/// </summary>
 public abstract class CompoundTagSerialisable : INbtTag<CompoundTagSerialisable> {
     public string? ComponentName;  // name for this NBT tag when it gets serialised (so it can be nested)
     

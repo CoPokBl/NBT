@@ -18,9 +18,8 @@ public class NbtReader {
     }
 
     public NbtReader(byte[] data, NbtCompressionType compression = NbtCompressionType.None) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
         // For maximum speed, convert stream to byte array upfront
-        _sourceData = data;
+        _sourceData = data ?? throw new ArgumentNullException(nameof(data));
         _position = 0;
         _compression = compression;
     }
@@ -124,51 +123,51 @@ public class NbtReader {
             case NbtTagPrefix.End:  // an empty list
                 return new ListTag(null, []);
             case NbtTagPrefix.String:
-                var stringTags = new StringTag[length];
+                StringTag[] stringTags = new StringTag[length];
                 for (int i = 0; i < length; i++) stringTags[i] = new StringTag(null, ReadString());
                 return new ListTag<StringTag>(null, stringTags);
             case NbtTagPrefix.Byte:
-                var byteTags = new ByteTag[length];
+                ByteTag[] byteTags = new ByteTag[length];
                 for (int i = 0; i < length; i++) byteTags[i] = new ByteTag(null, ReadByte());
                 return new ListTag<ByteTag>(null, byteTags);
             case NbtTagPrefix.Integer:
-                var intTags = new IntegerTag[length];
+                IntegerTag[] intTags = new IntegerTag[length];
                 for (int i = 0; i < length; i++) intTags[i] = new IntegerTag(null, ReadInteger());
                 return new ListTag<IntegerTag>(null, intTags);
             case NbtTagPrefix.Long:
-                var longTags = new LongTag[length];
+                LongTag[] longTags = new LongTag[length];
                 for (int i = 0; i < length; i++) longTags[i] = new LongTag(null, ReadLong());
                 return new ListTag<LongTag>(null, longTags);
             case NbtTagPrefix.Short:
-                var shortTags = new ShortTag[length];
+                ShortTag[] shortTags = new ShortTag[length];
                 for (int i = 0; i < length; i++) shortTags[i] = new ShortTag(null, ReadShort());
                 return new ListTag<ShortTag>(null, shortTags);
             case NbtTagPrefix.Float:
-                var floatTags = new FloatTag[length];
+                FloatTag[] floatTags = new FloatTag[length];
                 for (int i = 0; i < length; i++) floatTags[i] = new FloatTag(null, ReadFloat());
                 return new ListTag<FloatTag>(null, floatTags);
             case NbtTagPrefix.Double:
-                var doubleTags = new DoubleTag[length];
+                DoubleTag[] doubleTags = new DoubleTag[length];
                 for (int i = 0; i < length; i++) doubleTags[i] = new DoubleTag(null, ReadDouble());
                 return new ListTag<DoubleTag>(null, doubleTags);
             case NbtTagPrefix.List:
-                var listTags = new ListTag[length];
+                ListTag[] listTags = new ListTag[length];
                 for (int i = 0; i < length; i++) listTags[i] = ReadList();
                 return new ListTag<ListTag>(null, listTags);
             case NbtTagPrefix.Integers:
-                var intArrayTags = new ArrayTag<int>[length];
+                ArrayTag<int>[] intArrayTags = new ArrayTag<int>[length];
                 for (int i = 0; i < length; i++) intArrayTags[i] = ReadArray(ReadInteger);
                 return new ListTag<ArrayTag<int>>(null, intArrayTags);
             case NbtTagPrefix.Bytes:
-                var byteArrayTags = new ArrayTag<sbyte>[length];
+                ArrayTag<sbyte>[] byteArrayTags = new ArrayTag<sbyte>[length];
                 for (int i = 0; i < length; i++) byteArrayTags[i] = ReadArray(ReadByte);
                 return new ListTag<ArrayTag<sbyte>>(null, byteArrayTags);
             case NbtTagPrefix.Longs:
-                var longArrayTags = new ArrayTag<long>[length];
+                ArrayTag<long>[] longArrayTags = new ArrayTag<long>[length];
                 for (int i = 0; i < length; i++) longArrayTags[i] = ReadArray(ReadLong);
                 return new ListTag<ArrayTag<long>>(null, longArrayTags);
             case NbtTagPrefix.Compound:
-                var compoundTags = new CompoundTag[length];
+                CompoundTag[] compoundTags = new CompoundTag[length];
                 for (int i = 0; i < length; i++) compoundTags[i] = ReadCompoundTag();
                 return new ListTag<CompoundTag>(null, compoundTags);
         }

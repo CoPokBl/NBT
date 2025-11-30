@@ -11,11 +11,11 @@ public class NbtBuilder {
     private int _position;
     private bool _fromPool;
     
-    private static readonly ArrayPool<byte> _pool = ArrayPool<byte>.Shared;
+    private static readonly ArrayPool<byte> Pool = ArrayPool<byte>.Shared;
     
     public NbtBuilder() {
         // Use ArrayPool for maximum speed with reuse
-        _buffer = _pool.Rent(2048);
+        _buffer = Pool.Rent(2048);
         _position = 0;
         _fromPool = true;
     }
@@ -26,8 +26,8 @@ public class NbtBuilder {
         Buffer.BlockCopy(_buffer, 0, result, 0, _position);
         
         // Return to pool for reuse
-        if (_fromPool && _buffer != null) {
-            _pool.Return(_buffer);
+        if (_fromPool && _buffer != null!) {
+            Pool.Return(_buffer);
             _buffer = null!;
             _fromPool = false;
         }
@@ -38,17 +38,18 @@ public class NbtBuilder {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EnsureCapacity(int additionalBytes) {
         int requiredCapacity = _position + additionalBytes;
-        if (requiredCapacity > _buffer.Length) {
-            int newCapacity = Math.Max(_buffer.Length * 2, requiredCapacity);
-            byte[] newBuffer = _fromPool ? _pool.Rent(newCapacity) : new byte[newCapacity];
-            Buffer.BlockCopy(_buffer, 0, newBuffer, 0, _position);
+        if (requiredCapacity <= _buffer.Length) return;
+        
+        // Increase capacity
+        int newCapacity = Math.Max(_buffer.Length * 2, requiredCapacity);
+        byte[] newBuffer = _fromPool ? Pool.Rent(newCapacity) : new byte[newCapacity];
+        Buffer.BlockCopy(_buffer, 0, newBuffer, 0, _position);
             
-            if (_fromPool) {
-                _pool.Return(_buffer);
-            }
-            
-            _buffer = newBuffer;
+        if (_fromPool) {
+            Pool.Return(_buffer);
         }
+            
+        _buffer = newBuffer;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
