@@ -18,10 +18,8 @@ public class EmptyTag : INbtTag<EmptyTag>, IEquatable<EmptyTag> {
         throw new NotSupportedException("EmptyTag may only be used at the root level.");
     }
 
-    public byte[] Serialise(bool noType = false) {
-        return new NbtBuilder()
-            .Write(GetPrefix())
-            .ToArray();
+    public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
+        return builder.WriteType(GetPrefix(), noType);
     }
 
     public bool Equals(EmptyTag? other) {

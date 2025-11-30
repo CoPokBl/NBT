@@ -20,8 +20,8 @@ public class ByteTag(string? name, sbyte value) : INbtTag<ByteTag>, IEquatable<B
 
     public INbtTag WithName(string? name) => ((INbtTag<ByteTag>)this).WithName(name);
 
-    public byte[] Serialise(bool noType = false) {
-        return new NbtBuilder().WriteType(GetPrefix(), noType).WriteName(Name).WriteByte(Value).ToArray();
+    public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
+        return builder.WriteType(GetPrefix(), noType).WriteName(Name).WriteByte(Value);
     }
 
     public bool Equals(ByteTag? other) {

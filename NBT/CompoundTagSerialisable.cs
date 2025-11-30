@@ -32,8 +32,8 @@ public abstract class CompoundTagSerialisable : INbtTag<CompoundTagSerialisable>
         return this;
     }
 
-    public byte[] Serialise(bool noType = false) {
-        return SerialiseToTag().Serialise(noType);
+    public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
+        return SerialiseToTag().Write(builder, noType);
     }
 
     public abstract CompoundTag SerialiseToTag();

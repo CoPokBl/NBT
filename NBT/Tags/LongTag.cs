@@ -17,9 +17,9 @@ public class LongTag(string? name, long value) : INbtTag<LongTag>, IEquatable<Lo
     }
 
     public INbtTag WithName(string? name) => ((INbtTag<LongTag>)this).WithName(name);
-    
-    public byte[] Serialise(bool noType = false) {
-        return new NbtBuilder().WriteType(GetPrefix(), noType).WriteName(Name).WriteLong(Value).ToArray();
+
+    public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
+        return builder.WriteType(GetPrefix(), noType).WriteName(Name).WriteLong(Value);
     }
 
     public bool Equals(LongTag? other) {
