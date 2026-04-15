@@ -107,11 +107,6 @@ public class NbtBuilder {
         return this;
     }
 
-    public NbtBuilder WriteName(string? name) {
-        if (name != null) WriteString(name);
-        return this;
-    }
-
     public NbtBuilder Write(INbtTag tag) {
         return Write(tag.Serialise());
     }

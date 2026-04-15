@@ -1,7 +1,6 @@
 namespace NBT.Tags;
 
-public class ByteTag(string? name, sbyte value) : INbtTag<ByteTag>, IEquatable<ByteTag> {
-    public string? Name { get; } = name;
+public class ByteTag(sbyte value) : INbtTag, IEquatable<ByteTag> {
     public sbyte Value { get; } = value;
 
     public bool BoolValue => Value != 0x00;
@@ -10,24 +9,14 @@ public class ByteTag(string? name, sbyte value) : INbtTag<ByteTag>, IEquatable<B
         return NbtTagPrefix.Byte;
     }
 
-    public string? GetName() {
-        return Name;
-    }
-
-    ByteTag INbtTag<ByteTag>.WithName(string? name) {
-        return new ByteTag(name, Value);
-    }
-
-    public INbtTag WithName(string? name) => ((INbtTag<ByteTag>)this).WithName(name);
-
     public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
-        return builder.WriteType(GetPrefix(), noType).WriteName(Name).WriteByte(Value);
+        return builder.WriteType(GetPrefix(), noType).WriteByte(Value);
     }
 
     public bool Equals(ByteTag? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
-        return Name == other.Name && Value == other.Value;
+        return Value == other.Value;
     }
 
     public override bool Equals(object? obj) {
@@ -38,7 +27,7 @@ public class ByteTag(string? name, sbyte value) : INbtTag<ByteTag>, IEquatable<B
     }
 
     public override int GetHashCode() {
-        return HashCode.Combine(Name, Value);
+        return Value.GetHashCode();
     }
 
     public static bool operator ==(ByteTag? left, ByteTag? right) {

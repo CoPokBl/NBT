@@ -13,7 +13,7 @@
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         
         <PackageId>MinecraftDotnet.NBT</PackageId>
-        <Version>0.0.3</Version>
+        <Version>1.0.3</Version>
         <Title>NBT</Title>
         <Authors>CoPokBl</Authors>
         <Description>An NBT library with full support for Minecraft structured NBT.</Description>

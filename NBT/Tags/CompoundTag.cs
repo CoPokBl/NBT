@@ -1,3 +1,6 @@
+using System.Collections;
+using System.Collections.Specialized;
+
 namespace NBT.Tags;
 
 /// <summary>
@@ -5,52 +8,62 @@ namespace NBT.Tags;
 /// </summary>
 /// <param name="name">It's name if used as a child of another compound tag, otherwise it should be null.</param>
 /// <param name="children">Child properties, should all have names, null values are ignored.</param>
-public class CompoundTag(string? name, params INbtTag?[] children) : INbtTag<CompoundTag>, IEquatable<CompoundTag> {
+public class CompoundTag : INbtTag, IEquatable<CompoundTag> {
     /// <summary>Child properties, should all have names, null values are ignored.</summary>
-    public INbtTag?[] Children { get; } = children;
-    public string? Name { get; } = name;
+    private readonly OrderedDictionary _children;
 
-    private Dictionary<string, INbtTag>? _childrenMap;
-    public Dictionary<string, INbtTag> ChildrenMap {
+    public int ChildCount => _children.Count;
+    public IEnumerable<(string key, INbtTag child)> Children {
         get {
-            if (_childrenMap != null) {
-                return _childrenMap;
+            foreach (DictionaryEntry child in _children) {
+                if (child.Value == null) continue;
+                yield return ((string)child.Key, (INbtTag)child.Value);
             }
-            
-            _childrenMap = new Dictionary<string, INbtTag>();
-            foreach (INbtTag? child in Children) {
-                if (child != null) _childrenMap.Add(child.GetName()!, child);
-            }
-
-            return _childrenMap;
         }
     }
-    
-    public INbtTag? this[string name] => ChildrenMap.GetValueOrDefault(name);
-    
-    public bool Contains(string name) => ChildrenMap.ContainsKey(name);
 
-    public string? GetName() {
-        return Name;
+    public INbtTag? this[string name] => _children.Contains(name) ? (INbtTag?)_children[name] : null;
+    
+    public bool Contains(string name) => _children.Contains(name);
+
+    private CompoundTag(OrderedDictionary children) {
+        _children = children;
     }
     
-    CompoundTag INbtTag<CompoundTag>.WithName(string? name) {
-        return new CompoundTag(name, Children);
+    public CompoundTag(IDictionary<string, INbtTag?> children) {
+        _children = new OrderedDictionary();
+        foreach ((string key, INbtTag? tag) in children) {
+            if (tag == null) continue;
+            _children.Add(key, tag);
+        }
     }
 
-    public INbtTag WithName(string? name) => ((INbtTag<CompoundTag>)this).WithName(name);
-    
-    public CompoundTag WithChild(INbtTag child) {
+    public CompoundTag(params (string, INbtTag?)[] children) {
+        _children = new OrderedDictionary();
+        foreach ((string key, INbtTag? tag) in children) {
+            if (tag == null) continue;
+            _children.Add(key, tag);
+        }
+    }
+
+    public CompoundTag WithChild(string key, INbtTag child, int index = -1) {
         if (child == null) {
             throw new ArgumentNullException(nameof(child), "Child cannot be null");
         }
-        if (child.GetName() == null) {
-            throw new ArgumentException("Child tags of a compound tag must have names", nameof(child));
+        
+        OrderedDictionary children = new();
+        foreach (DictionaryEntry k in _children) {
+            children.Add(k.Key, k.Value);
+        }
+
+        if (index == -1) {
+            children.Add(key, child);
+        }
+        else {
+            children.Insert(index, key, child);
         }
         
-        List<INbtTag?> children = Children.ToList();
-        children.Add(child);
-        return new CompoundTag(Name, children.ToArray());
+        return new CompoundTag(children);
     }
     
     public byte GetPrefix() {
@@ -58,39 +71,35 @@ public class CompoundTag(string? name, params INbtTag?[] children) : INbtTag<Com
     }
 
     public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
-        builder.WriteType(GetPrefix(), noType).WriteName(Name);  // no write start
-        foreach (INbtTag? child in Children) {
-            if (child == null) continue;
-            if (child.GetName() == null) {
-                throw new ArgumentException("Child tags of a compound tag must have names", nameof(child));
-            }
-
-            child.Write(builder);
+        builder.WriteType(GetPrefix(), noType);  // no write start
+        foreach (DictionaryEntry kvp in _children) {
+            INbtTag child = (INbtTag)kvp.Value!;
+            
+            builder.Write(child.GetPrefix());
+            builder.WriteString((string)kvp.Key);
+            child.Write(builder, true);
         }
+        
         return builder.Write(NbtTagPrefix.End);
     }
 
     public bool Equals(CompoundTag? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
-        if (Name != other.Name) return false;
         
-        // Get non-null children for comparison
-        INbtTag[] thisChildren = Children.Where(c => c != null).ToArray()!;
-        INbtTag[] otherChildren = other.Children.Where(c => c != null).ToArray()!;
+        if (_children.Values.Count != other._children.Values.Count) {
+            return false;
+        }
         
-        if (thisChildren.Length != otherChildren.Length) return false;
-        
-        // Compare using ChildrenMap for name-based lookup
-        foreach (INbtTag child in thisChildren) {
-            string? childName = child.GetName();
-            if (childName == null) return false;
-            
-            if (!other.ChildrenMap.TryGetValue(childName, out INbtTag? otherChild)) {
+        foreach (DictionaryEntry kvp in _children) {
+            string key = (string)kvp.Key;
+            INbtTag child = (INbtTag)kvp.Value!;
+            if (!other._children.Contains(key)) {
                 return false;
             }
-            
-            if (!child.Equals(otherChild)) {
+
+            INbtTag? otherChild = (INbtTag?)other._children[key];
+            if (otherChild == null || !child.Equals(otherChild)) {
                 return false;
             }
         }
@@ -107,11 +116,9 @@ public class CompoundTag(string? name, params INbtTag?[] children) : INbtTag<Com
 
     public override int GetHashCode() {
         HashCode hash = new();
-        hash.Add(Name);
-        foreach (INbtTag? child in Children) {
-            if (child != null) {
-                hash.Add(child);
-            }
+        foreach (DictionaryEntry kvp in _children.Cast<DictionaryEntry>().OrderBy(e => (string)e.Key)) {
+            hash.Add((string)kvp.Key);
+            hash.Add((INbtTag)kvp.Value!);
         }
         return hash.ToHashCode();
     }

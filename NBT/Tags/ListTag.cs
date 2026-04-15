@@ -1,21 +1,22 @@
 namespace NBT.Tags;
 
 public class ListTag<T> : ListTag, IEquatable<ListTag<T>> where T : INbtTag {
-    public new T[] Tags => base.Tags.Cast<T>().ToArray();
-    
-    public ListTag(string? name, T[] tags) : base(name, tags.Cast<INbtTag>().ToArray()) {
-        if (typeof(T) == typeof(INbtTag)) {
-            throw new ArgumentException("List must only be of one type.", nameof(T));
-        }
+    private readonly T[] _tags;
+    public new ReadOnlySpan<T> Tags => _tags;
+
+    public ListTag(params T[] tags) {
+        _tags = tags.ToArray();
+        TagsArray = tags.Cast<INbtTag>().ToArray();
+        Verify();
     }
     
-    public new ListTag<T> WithName(string name) {
-        return new ListTag<T>(Name, Tags);
+    public ListTag(IEnumerable<T> tags) {
+        _tags = tags.ToArray();
+        TagsArray = _tags.Cast<INbtTag>().ToArray();
+        Verify();
     }
 
     public bool Equals(ListTag<T>? other) {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
         return base.Equals(other);
     }
 
@@ -41,29 +42,42 @@ public class ListTag<T> : ListTag, IEquatable<ListTag<T>> where T : INbtTag {
     }
 }
 
-public class ListTag(string? name, INbtTag[] tags) : INbtTag<ListTag>, IEquatable<ListTag> {
-    public string? Name { get; } = name;
-    public INbtTag[] Tags { get; } = tags;
+public class ListTag : INbtTag, IEquatable<ListTag> {
+    protected INbtTag[] TagsArray;
+    public ReadOnlySpan<INbtTag> Tags => TagsArray;
+
+    public ListTag(params INbtTag[] tags) {
+        TagsArray = tags.ToArray();
+        Verify();
+    }
+
+    public ListTag(IEnumerable<INbtTag> tags) {
+        TagsArray = tags.ToArray();
+        Verify();
+    }
+
+    protected void Verify() {
+        if (TagsArray.Length == 0) {
+            return;
+        }
+        
+        byte prefix = TagsArray[0].GetPrefix();
+        for (int i = 1; i < TagsArray.Length; i++) {
+            if (TagsArray[i].GetPrefix() != prefix) {
+                throw new ArrayTypeMismatchException("All elements of a list tag must be the same type");
+            }
+        }
+    }
 
     public byte GetPrefix() {
         return NbtTagPrefix.List;
     }
     
-    public string? GetName() {
-        return Name;
-    }
-    
-    ListTag INbtTag<ListTag>.WithName(string? name) {
-        return new ListTag(name, Tags);
-    }
-
-    public INbtTag WithName(string? name) => ((INbtTag<ListTag>)this).WithName(name);
-
     public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
-        byte type = Tags.Length == 0 ? NbtTagPrefix.End : Tags[0].GetPrefix();
-
-        builder = builder.WriteType(NbtTagPrefix.List, noType).WriteName(Name).Write(type).WriteInteger(Tags.Length);
-        foreach (INbtTag tag in Tags) {
+        byte type = TagsArray.Length == 0 ? NbtTagPrefix.End : TagsArray[0].GetPrefix();
+        
+        builder = builder.WriteType(NbtTagPrefix.List, noType).Write(type).WriteInteger(TagsArray.Length);
+        foreach (INbtTag tag in TagsArray) {
             tag.Write(builder, true);
         }
         return builder;
@@ -72,11 +86,10 @@ public class ListTag(string? name, INbtTag[] tags) : INbtTag<ListTag>, IEquatabl
     public bool Equals(ListTag? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
-        if (Name != other.Name) return false;
-        if (Tags.Length != other.Tags.Length) return false;
+        if (TagsArray.Length != other.TagsArray.Length) return false;
         
-        for (int i = 0; i < Tags.Length; i++) {
-            if (!Tags[i].Equals(other.Tags[i])) {
+        for (int i = 0; i < TagsArray.Length; i++) {
+            if (!TagsArray[i].Equals(other.TagsArray[i])) {
                 return false;
             }
         }
@@ -93,7 +106,6 @@ public class ListTag(string? name, INbtTag[] tags) : INbtTag<ListTag>, IEquatabl
 
     public override int GetHashCode() {
         HashCode hash = new();
-        hash.Add(Name);
         foreach (INbtTag tag in Tags) {
             hash.Add(tag);
         }

@@ -1,31 +1,20 @@
 namespace NBT.Tags;
 
-public class ShortTag(string? name, short value) : INbtTag<ShortTag>, IEquatable<ShortTag> {
-    public string? Name { get; } = name;
+public class ShortTag(short value) : INbtTag, IEquatable<ShortTag> {
     public short Value { get; } = value;
 
     public byte GetPrefix() {
         return NbtTagPrefix.Short;
     }
-    
-    public string? GetName() {
-        return Name;
-    }
-    
-    ShortTag INbtTag<ShortTag>.WithName(string? name) {
-        return new ShortTag(name, Value);
-    }
-
-    public INbtTag WithName(string? name) => ((INbtTag<ShortTag>)this).WithName(name);
 
     public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
-        return builder.WriteType(GetPrefix(), noType).WriteName(Name).WriteShort(Value);
+        return builder.WriteType(GetPrefix(), noType).WriteShort(Value);
     }
 
     public bool Equals(ShortTag? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
-        return Name == other.Name && Value == other.Value;
+        return Value == other.Value;
     }
 
     public override bool Equals(object? obj) {
@@ -36,7 +25,7 @@ public class ShortTag(string? name, short value) : INbtTag<ShortTag>, IEquatable
     }
 
     public override int GetHashCode() {
-        return HashCode.Combine(Name, Value);
+        return Value.GetHashCode();
     }
 
     public static bool operator ==(ShortTag? left, ShortTag? right) {

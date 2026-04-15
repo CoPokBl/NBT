@@ -4,39 +4,12 @@ using Newtonsoft.Json.Linq;
 
 namespace NBT;
 
-public interface INbtTag<out TSelf> : INbtTag where TSelf : INbtTag<TSelf> {
-    /// <summary>
-    /// Returns this NBT tag with the given name.
-    /// <p/>
-    /// See <see cref="INbtTag.GetName"/> for information about a tag's name.
-    /// </summary>
-    /// <param name="name">The name to give it.</param>
-    /// <returns>This tag with the given name.</returns>
-    new TSelf WithName(string? name);
-}
-
 public interface INbtTag {
     /// <summary>
     /// Get the NBT prefix of this tag.
     /// </summary>
     /// <returns>The byte ID of this data type.</returns>
     byte GetPrefix();
-    
-    /// <summary>
-    /// Gets the name of this tag in a compound tag.
-    /// If this tag is not part of a compound tag this should be null.
-    /// </summary>
-    /// <returns>This tag's name or null.</returns>
-    string? GetName();
-    
-    /// <summary>
-    /// Returns this NBT tag with the given name.
-    /// <p/>
-    /// See <see cref="GetName"/> for information about a tag's name.
-    /// </summary>
-    /// <param name="name">The name to give it.</param>
-    /// <returns>This tag with the given name.</returns>
-    INbtTag WithName(string? name);
 
     /// <summary>
     /// Serialise this NBT tag into a byte array.
@@ -78,8 +51,8 @@ public interface INbtTag {
                 return tag.GetShort();
             case CompoundTag compound: {
                 JObject obj = new();
-                foreach (KeyValuePair<string, INbtTag> kvp in compound.ChildrenMap) {
-                    obj[kvp.Key] = ToJson(kvp.Value);
+                foreach ((string key, INbtTag value) in compound.Children) {
+                    obj[key] = ToJson(value);
                 }
 
                 return obj;
@@ -110,7 +83,7 @@ public interface INbtTag {
                     longArr.Add(item);
                 }
                 return longArr;
-            case CompoundTagSerialisable cts:
+            case ICompoundTagSerialisable cts:
                 return ToJson(cts.SerialiseToTag());
             default:
                 throw new NotImplementedException("Cannot serialise tag of type " + tag.GetType().Name + " to JSON.");
@@ -118,26 +91,29 @@ public interface INbtTag {
     }
 
     public static INbtTag FromJson(string json) {
-        return FromJson(null, JsonConvert.DeserializeObject<JToken>(json)!);
+        return FromJson(JsonConvert.DeserializeObject<JToken>(json)!);
     }
     
-    public static INbtTag FromJson(string? name, JToken json) {
+    public static INbtTag FromJson(JToken json) {
         if (json is JObject obj) {
             // compound tag
-            List<INbtTag> tags = [];
-            foreach (KeyValuePair<string, JToken?> kvp in obj) {
-                tags.Add(FromJson(kvp.Key, kvp.Value!));
+            Dictionary<string, INbtTag?> tags = [];
+            foreach ((string key, JToken? value) in obj) {
+                if (value == null) throw new NullReferenceException("Json value in compound tag is null");
+                tags.Add(key, FromJson(value));
             }
-            return new CompoundTag(name, tags.ToArray());
+            
+            return new CompoundTag(tags);
         }
         
         if (json is JArray arr) {
             // list tag
             List<INbtTag> tags = [];
             foreach (JToken item in arr) {
-                tags.Add(FromJson(null, item));
+                tags.Add(FromJson(item));
             }
-            return new ListTag(name, tags.ToArray());
+            
+            return new ListTag(tags.ToArray());
         }
         
         // primitive tag
@@ -146,19 +122,19 @@ public interface INbtTag {
         }
         
         if (json.Type == JTokenType.Boolean) {
-            return new BooleanTag(name, json.ToObject<bool>());
+            return new BooleanTag(json.ToObject<bool>());
         }
         
         if (json.Type == JTokenType.String) {
-            return new StringTag(name, json.ToString());
+            return new StringTag(json.ToString());
         }
         
         if (json.Type == JTokenType.Integer) {
-            return new IntegerTag(name, json.ToObject<int>());
+            return new IntegerTag(json.ToObject<int>());
         }
         
         if (json.Type == JTokenType.Float) {
-            return new DoubleTag(name, json.ToObject<float>());  // use high precision for doubles
+            return new DoubleTag(json.ToObject<double>());  // use high precision for doubles
         }
         
         throw new NotImplementedException("Cannot create tag from JSON of type " + json.Type + ".");
@@ -252,7 +228,7 @@ public static class TagExtensions {
         return booleanTag.Value;
     }
 
-    public static int[] GetIntegers(this INbtTag? tag) {
+    public static ReadOnlySpan<int> GetIntegers(this INbtTag? tag) {
         if (tag is ListTag list) {
             if (list.Tags.Length == 0) {
                 return [];
@@ -268,7 +244,7 @@ public static class TagExtensions {
         return ((ArrayTag<int>)tag!).Values;
     }
     
-    public static sbyte[] GetBytes(this INbtTag? tag) {  // signed byte array
+    public static ReadOnlySpan<sbyte> GetBytes(this INbtTag? tag) {  // signed byte array
         if (tag is ListTag list) {
             if (list.Tags.Length == 0) {
                 return [];
@@ -284,7 +260,7 @@ public static class TagExtensions {
         return ((ArrayTag<sbyte>)tag!).Values;
     }
     
-    public static long[] GetLongs(this INbtTag? tag) {
+    public static ReadOnlySpan<long> GetLongs(this INbtTag? tag) {
         if (tag is ListTag list) {
             if (list.Tags.Length == 0) {
                 return [];
@@ -305,7 +281,7 @@ public static class TagExtensions {
             return compound;
         }
         
-        if (tag is CompoundTagSerialisable cts) {
+        if (tag is ICompoundTagSerialisable cts) {
             return cts.SerialiseToTag();
         }
 

@@ -7,13 +7,13 @@ public class NbtJsonTest {
     
     [Test]
     public void CompoundTest() {
-        INbtTag tag = new CompoundTag(null, 
-            new BooleanTag("blue", false),
-            new DoubleTag("age", 19.3),
-            new IntegerTag("manzanas", 3),
-            new CompoundTag("person", 
-                new StringTag("name", "CoPokBl"), 
-                new IntegerTag("age", 1024)));
+        INbtTag tag = new CompoundTag(
+            ("blue", new BooleanTag(false)),
+            ("age", new DoubleTag(19.3)),
+            ("manzanas", new IntegerTag(3)),
+            ("person", new CompoundTag(
+                ("name", new StringTag("CoPokBl")), 
+                ("age", new IntegerTag(1024)))));
         
         INbtTag tag2 = INbtTag.FromJson(tag.ToJsonString());
         
@@ -35,7 +35,7 @@ public class NbtJsonTest {
 
     [Test]
     public void BooleanTest() {
-        INbtTag tag = new BooleanTag("blue", false);
+        INbtTag tag = new BooleanTag(false);
         INbtTag tag2 = INbtTag.FromJson(tag.ToJsonString());
         
         Assert.That(tag2, Is.TypeOf<BooleanTag>());

@@ -1,31 +1,20 @@
 namespace NBT.Tags;
 
-public class StringTag(string? name, string value) : INbtTag<StringTag>, IEquatable<StringTag> {
-    public string? Name { get; } = name;
+public class StringTag(string value) : INbtTag, IEquatable<StringTag> {
     public string Value { get; } = value;
 
     public byte GetPrefix() {
         return NbtTagPrefix.String;
     }
     
-    public string? GetName() {
-        return Name;
-    }
-    
-    StringTag INbtTag<StringTag>.WithName(string? name) {
-        return new StringTag(name, Value);
-    }
-
-    public INbtTag WithName(string? name) => ((INbtTag<StringTag>)this).WithName(name);
-
     public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
-        return builder.WriteType(GetPrefix(), noType).WriteName(Name).WriteString(Value);
+        return builder.WriteType(GetPrefix(), noType).WriteString(Value);
     }
 
     public bool Equals(StringTag? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
-        return Name == other.Name && Value == other.Value;
+        return Value == other.Value;
     }
 
     public override bool Equals(object? obj) {
@@ -36,7 +25,7 @@ public class StringTag(string? name, string value) : INbtTag<StringTag>, IEquata
     }
 
     public override int GetHashCode() {
-        return HashCode.Combine(Name, Value);
+        return Value.GetHashCode();
     }
 
     public static bool operator ==(StringTag? left, StringTag? right) {

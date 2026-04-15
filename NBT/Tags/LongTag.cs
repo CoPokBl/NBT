@@ -1,31 +1,20 @@
 namespace NBT.Tags;
 
-public class LongTag(string? name, long value) : INbtTag<LongTag>, IEquatable<LongTag> {
-    public string? Name { get; } = name;
+public class LongTag(long value) : INbtTag, IEquatable<LongTag> {
     public long Value { get; } = value;
 
     public byte GetPrefix() {
         return NbtTagPrefix.Long;
     }
-    
-    public string? GetName() {
-        return Name;
-    }
-    
-    LongTag INbtTag<LongTag>.WithName(string? name) {
-        return new LongTag(name, Value);
-    }
-
-    public INbtTag WithName(string? name) => ((INbtTag<LongTag>)this).WithName(name);
 
     public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
-        return builder.WriteType(GetPrefix(), noType).WriteName(Name).WriteLong(Value);
+        return builder.WriteType(GetPrefix(), noType).WriteLong(Value);
     }
 
     public bool Equals(LongTag? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
-        return Name == other.Name && Value == other.Value;
+        return Value == other.Value;
     }
 
     public override bool Equals(object? obj) {
@@ -36,7 +25,7 @@ public class LongTag(string? name, long value) : INbtTag<LongTag>, IEquatable<Lo
     }
 
     public override int GetHashCode() {
-        return HashCode.Combine(Name, Value);
+        return Value.GetHashCode();
     }
 
     public static bool operator ==(LongTag? left, LongTag? right) {

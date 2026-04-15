@@ -12,29 +12,29 @@ public class QuickBenchmark {
         Console.WriteLine("=== NBT Performance Benchmark ===\n");
         
         // Setup test data
-        var simpleTag = new CompoundTag(null,
-            new StringTag("name", "Test"),
-            new IntegerTag("age", 30),
-            new BooleanTag("active", true),
-            new DoubleTag("score", 98.5)
+        var simpleTag = new CompoundTag(
+            ("name", new StringTag("Test")),
+            ("age", new IntegerTag(30)),
+            ("active", new BooleanTag(true)),
+            ("score", new DoubleTag(98.5))
         );
         
-        var complexTag = new CompoundTag(null,
-            new StringTag("name", "ComplexTest"),
-            new IntegerTag("level", 15),
-            new ListTag<IntegerTag>("scores", [
-                new IntegerTag(null, 100),
-                new IntegerTag(null, 200),
-                new IntegerTag(null, 300),
-                new IntegerTag(null, 400),
-                new IntegerTag(null, 500)
-            ]),
-            new CompoundTag("nested",
-                new StringTag("field1", "value1"),
-                new StringTag("field2", "value2"),
-                new IntegerTag("field3", 42)
-            ),
-            new ArrayTag<sbyte>("byteArray", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+        var complexTag = new CompoundTag(
+            ("name", new StringTag("ComplexTest")),
+            ("level", new IntegerTag(15)),
+            ("scores", new ListTag<IntegerTag>([
+                new IntegerTag(100),
+                new IntegerTag(200),
+                new IntegerTag( 300),
+                new IntegerTag( 400),
+                new IntegerTag(500)
+            ])),
+            ("nested", new CompoundTag(
+                ("field1", new StringTag("value1")),
+                ("field2", new StringTag("value2")),
+                ("field3", new IntegerTag(42))
+            )),
+            ("byteArray", new ArrayTag<sbyte>(1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
         );
         
         int[] largeIntArray = new int[1000];
@@ -47,10 +47,10 @@ public class QuickBenchmark {
             largeByteArray[i] = (sbyte)(i % 128);
         }
         
-        var largeArrayTag = new CompoundTag(null,
-            new StringTag("name", "LargeArrays"),
-            new ArrayTag<int>("intArray", largeIntArray),
-            new ArrayTag<sbyte>("byteArray", largeByteArray)
+        var largeArrayTag = new CompoundTag(
+            ("name", new StringTag("LargeArrays")),
+            ("intArray", new ArrayTag<int>(largeIntArray)),
+            ("byteArray", new ArrayTag<sbyte>(largeByteArray))
         );
         
         // Warmup

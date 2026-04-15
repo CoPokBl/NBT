@@ -6,61 +6,61 @@ namespace Tests;
 public class Tests {
     [Test]
     public void SerialiseDeserialise() {
-        TestTagNoErrors(new BooleanTag(null, true), tag => {
+        TestTagNoErrors(new BooleanTag(true), tag => {
             Assert.That(tag, Is.AssignableTo(typeof(ByteTag)));
             Assert.That(((ByteTag)tag).Value, Is.EqualTo(0x01));
         });
-        TestTagNoErrors(new ByteTag(null, 0x56), tag => {
+        TestTagNoErrors(new ByteTag(0x56), tag => {
             Assert.That(tag, Is.AssignableTo(typeof(ByteTag)));
             Assert.That(((ByteTag)tag).Value, Is.EqualTo(0x56));
         });
-        TestTagNoErrors(new DoubleTag(null, 56.34), tag => {
+        TestTagNoErrors(new DoubleTag(56.34), tag => {
             Assert.That(tag, Is.AssignableTo(typeof(DoubleTag)));
             Assert.That(((DoubleTag)tag).Value, Is.EqualTo(56.34));
         });
-        TestTagNoErrors(new FloatTag(null, 56.34f), tag => {
+        TestTagNoErrors(new FloatTag(56.34f), tag => {
             Assert.That(tag, Is.AssignableTo(typeof(FloatTag)));
             Assert.That(((FloatTag)tag).Value, Is.EqualTo(56.34f));
         });
-        TestTagNoErrors(new IntegerTag(null, 6), tag => {
+        TestTagNoErrors(new IntegerTag(6), tag => {
             Assert.That(tag, Is.AssignableTo(typeof(IntegerTag)));
             Assert.That(((IntegerTag)tag).Value, Is.EqualTo(6));
         });
-        TestTagNoErrors(new StringTag(null, "hello there"), tag => {
+        TestTagNoErrors(new StringTag("hello there"), tag => {
             Assert.That(tag, Is.AssignableTo(typeof(StringTag)));
             Assert.That(((StringTag)tag).Value, Is.EqualTo("hello there"));
         });
-        TestTagNoErrors(new CompoundTag(null), tag => {
+        TestTagNoErrors(new CompoundTag(), tag => {
             Assert.That(tag, Is.AssignableTo(typeof(CompoundTag)));
             Assert.That(((CompoundTag)tag).Children, Is.Empty);
         });
-        TestTagNoErrors(new CompoundTag(null, 
-                new BooleanTag("potato", true), 
-                new IntegerTag("someint", 7)
+        TestTagNoErrors(new CompoundTag(
+                ("potato", new BooleanTag(true)), 
+                ("someint", new IntegerTag(7))
                 ), tag => {
             Assert.That(tag, Is.AssignableTo(typeof(CompoundTag)));
             CompoundTag comp = (CompoundTag)tag;
             
-            Assert.That(comp.Children, Has.Length.EqualTo(2));
+            Assert.That(comp.ChildCount, Is.EqualTo(2));
             Assert.Multiple(() => {
-                Assert.That(comp.Children[0], Is.AssignableTo(typeof(ByteTag)));
-                Assert.That(((ByteTag)comp.Children[0]!).Value, Is.EqualTo(0x01));
-                Assert.That(((ByteTag)comp.Children[0]!).Name, Is.EqualTo("potato"));
+                Assert.That(comp.Children.First().child, Is.AssignableTo(typeof(ByteTag)));
+                Assert.That(((ByteTag)comp.Children.First().child).Value, Is.EqualTo(0x01));
+                Assert.That(comp.Children.First().key, Is.EqualTo("potato"));
             });
             Assert.Multiple(() => {
-                Assert.That(comp.Children[1], Is.AssignableTo(typeof(IntegerTag)));
-                Assert.That(((IntegerTag)comp.Children[1]!).Value, Is.EqualTo(7));
-                Assert.That(((IntegerTag)comp.Children[1]!).Name, Is.EqualTo("someint"));
+                Assert.That(comp.Children.Skip(1).First().child, Is.AssignableTo(typeof(IntegerTag)));
+                Assert.That(((IntegerTag)comp.Children.Skip(1).First().child).Value, Is.EqualTo(7));
+                Assert.That(comp.Children.Skip(1).First().key, Is.EqualTo("someint"));
             });
         });
-        TestTagNoErrors(new ListTag<IntegerTag>(null, 
+        TestTagNoErrors(new ListTag<IntegerTag>(
         [
-            new IntegerTag(null, 7), 
-            new IntegerTag(null, 2)
+            new IntegerTag(7), 
+            new IntegerTag(2)
         ]), tag => {
             Assert.That(tag, Is.AssignableTo(typeof(ListTag<IntegerTag>)));
             ListTag<IntegerTag> comp = (ListTag<IntegerTag>)tag;
-            Assert.That(comp.Tags, Has.Length.EqualTo(2));
+            Assert.That(comp.Tags.Length, Is.EqualTo(2));
             
             Assert.Multiple(() => {
                 Assert.That(comp.Tags[0], Is.AssignableTo(typeof(IntegerTag)));
@@ -73,12 +73,12 @@ public class Tests {
         });
         
         // More complex
-        CompoundTag someTag = new(null, 
-            new StringTag("name", "Test"), 
-            new IntegerTag("age", 30), 
-            new ListTag<IntegerTag>("SomeList", [new IntegerTag(null, 1), new IntegerTag(null, 2)]
-            ),
-            new ArrayTag<sbyte>("AnArrayOfBytes", 0, 1, 2)
+        CompoundTag someTag = new(
+            ("name", new StringTag("Test")), 
+            ("age", new IntegerTag(30)), 
+            ("SomeList", new ListTag<IntegerTag>([new IntegerTag(1), new IntegerTag(2)]
+            )),
+            ("AnArrayOfBytes", new ArrayTag<sbyte>(0, 1, 2))
         );
         byte[] serialised = someTag.Serialise();
         byte[] enc = CompressionHelper.CompressZLib(serialised);
@@ -86,11 +86,11 @@ public class Tests {
         INbtTag deserialised = NbtReader.ReadNbt(enc, false, NbtCompressionType.ZLib);
         Assert.That(deserialised, Is.AssignableTo(typeof(CompoundTag)));
         CompoundTag deserialisedComp = (CompoundTag)deserialised;
-        Assert.That(deserialisedComp.Children, Has.Length.EqualTo(4));
+        Assert.That(deserialisedComp.ChildCount, Is.EqualTo(4));
         Assert.Multiple(() => {
-            Assert.That(deserialisedComp.Children[0], Is.AssignableTo(typeof(StringTag)));
-            Assert.That(((StringTag)deserialisedComp.Children[0]!).Value, Is.EqualTo("Test"));
-            Assert.That(((StringTag)deserialisedComp.Children[0]!).Name, Is.EqualTo("name"));
+            Assert.That(deserialisedComp.Children.First().child, Is.AssignableTo(typeof(StringTag)));
+            Assert.That(((StringTag)deserialisedComp.Children.First().child).Value, Is.EqualTo("Test"));
+            Assert.That(deserialisedComp.Children.First().key, Is.EqualTo("name"));
         });
     }
 

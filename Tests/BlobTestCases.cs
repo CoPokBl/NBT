@@ -13,26 +13,26 @@ namespace Tests;
 /// </summary>
 internal static class BlobTestCases {
     public static (string Name, INbtTag Tag)[] All => [
-        ("ByteTagPositive",    new ByteTag(null, 0x56)),
-        ("ByteTagNegative",    new ByteTag(null, -1)),
-        ("ShortTag",           new ShortTag(null, 1000)),
-        ("IntegerTag",         new IntegerTag(null, 42)),
-        ("LongTag",            new LongTag(null, 0x0102030405060708L)),
-        ("FloatTag",           new FloatTag(null, 1.0f)),
-        ("DoubleTag",          new DoubleTag(null, 1.0)),
-        ("StringTagAscii",     new StringTag(null, "hi")),
-        ("BooleanTagTrue",     new BooleanTag(null, true)),
-        ("BooleanTagFalse",    new BooleanTag(null, false)),
-        ("ByteArrayTag",       new ArrayTag<sbyte>(null, 0, 1, -1)),
-        ("IntArrayTag",        new ArrayTag<int>(null, 1, 2, 3)),
-        ("LongArrayTag",       new ArrayTag<long>(null, 1L, 2L)),
-        ("ListTagIntegers",    new ListTag<IntegerTag>(null, [new IntegerTag(null, 1), new IntegerTag(null, 2)])),
-        ("CompoundTagEmpty",   new CompoundTag(null)),
-        ("CompoundTagComplex", new CompoundTag(null,
-            new StringTag("name", "Steve"),
-            new IntegerTag("level", 10),
-            new ListTag<IntegerTag>("scores", [new IntegerTag(null, 100), new IntegerTag(null, 200)]),
-            new ArrayTag<sbyte>("flags", 1, 0, 1)
+        ("ByteTagPositive",    new ByteTag(0x56)),
+        ("ByteTagNegative",    new ByteTag(-1)),
+        ("ShortTag",           new ShortTag(1000)),
+        ("IntegerTag",         new IntegerTag(42)),
+        ("LongTag",            new LongTag(0x0102030405060708L)),
+        ("FloatTag",           new FloatTag(1.0f)),
+        ("DoubleTag",          new DoubleTag(1.0)),
+        ("StringTagAscii",     new StringTag("hi")),
+        ("BooleanTagTrue",     new BooleanTag(true)),
+        ("BooleanTagFalse",    new BooleanTag(false)),
+        ("ByteArrayTag",       new ArrayTag<sbyte>(0, 1, -1)),
+        ("IntArrayTag",        new ArrayTag<int>(1, 2, 3)),
+        ("LongArrayTag",       new ArrayTag<long>(1L, 2L)),
+        ("ListTagIntegers",    new ListTag<IntegerTag>([new IntegerTag(1), new IntegerTag(2)])),
+        ("CompoundTagEmpty",   new CompoundTag(new Dictionary<string, INbtTag?>())),
+        ("CompoundTagComplex", new CompoundTag(
+            ("name", new StringTag("Steve")),
+            ("level", new IntegerTag(10)),
+            ("scores", new ListTag<IntegerTag>([new IntegerTag(100), new IntegerTag(200)])),
+            ("flags", new ArrayTag<sbyte>(1, 0, 1))
         ))
     ];
 }

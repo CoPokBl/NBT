@@ -5,22 +5,23 @@ namespace NBT.Tags;
 /// The type must be one of the supported types: int, long, or sbyte.
 /// </summary>
 /// <typeparam name="T">One of: int, long, or sbyte.</typeparam>
-public class ArrayTag<T> : INbtTag<ArrayTag<T>>, IEquatable<ArrayTag<T>> {
+public class ArrayTag<T> : INbtTag, IEquatable<ArrayTag<T>> {
+    private readonly T[] _values;
+
+    public ReadOnlySpan<T> Values => _values;
+    
     // ReSharper disable once StaticMemberInGenericType
     private static readonly Type[] SupportedTypes = [
         typeof(int), typeof(long), typeof(sbyte)
     ];
     
-    public ArrayTag(string? name, params T[] values) {
+    public ArrayTag(params T[] values) {
         if (!SupportedTypes.Contains(typeof(T))) {
             throw new ArgumentException("Unsupported type for ArrayTag: " + typeof(T).Name);
         }
-        Name = name;
-        Values = values;
+        
+        _values = values;
     }
-
-    public string? Name { get; }
-    public T[] Values { get; }
 
     public byte GetPrefix() {
         return typeof(T) switch {
@@ -31,19 +32,8 @@ public class ArrayTag<T> : INbtTag<ArrayTag<T>>, IEquatable<ArrayTag<T>> {
         };
     }
     
-    public string? GetName() {
-        return Name;
-    }
-    
-    ArrayTag<T> INbtTag<ArrayTag<T>>.WithName(string? name) {
-        return new ArrayTag<T>(name, Values);
-    }
-
-    public INbtTag WithName(string? name) => ((INbtTag<ArrayTag<T>>)this).WithName(name);
-
     public NbtBuilder Write(NbtBuilder builder, bool noType = false) {
         builder.WriteType(GetPrefix(), noType)
-            .WriteName(Name)
             .WriteInteger(Values.Length);
         
         foreach (T v in Values) {
@@ -68,7 +58,6 @@ public class ArrayTag<T> : INbtTag<ArrayTag<T>>, IEquatable<ArrayTag<T>> {
     public bool Equals(ArrayTag<T>? other) {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
-        if (Name != other.Name) return false;
         if (Values.Length != other.Values.Length) return false;
         
         for (int i = 0; i < Values.Length; i++) {
@@ -89,7 +78,6 @@ public class ArrayTag<T> : INbtTag<ArrayTag<T>>, IEquatable<ArrayTag<T>> {
 
     public override int GetHashCode() {
         HashCode hash = new();
-        hash.Add(Name);
         foreach (T value in Values) {
             hash.Add(value);
         }

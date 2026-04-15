@@ -85,13 +85,13 @@ public class NbtReader {
 
         // At the root level no tag will have a name
         return type switch {
-            NbtTagPrefix.String => new StringTag(null, ReadString()),
-            NbtTagPrefix.Byte => new ByteTag(null, ReadByte()),
-            NbtTagPrefix.Integer => new IntegerTag(null, ReadInteger()),
-            NbtTagPrefix.Long => new LongTag(null, ReadLong()),
-            NbtTagPrefix.Short => new ShortTag(null, ReadShort()),
-            NbtTagPrefix.Float => new FloatTag(null, ReadFloat()),
-            NbtTagPrefix.Double => new DoubleTag(null, ReadDouble()),
+            NbtTagPrefix.String => new StringTag(ReadString()),
+            NbtTagPrefix.Byte => new ByteTag(ReadByte()),
+            NbtTagPrefix.Integer => new IntegerTag(ReadInteger()),
+            NbtTagPrefix.Long => new LongTag(ReadLong()),
+            NbtTagPrefix.Short => new ShortTag(ReadShort()),
+            NbtTagPrefix.Float => new FloatTag(ReadFloat()),
+            NbtTagPrefix.Double => new DoubleTag(ReadDouble()),
             NbtTagPrefix.Compound => ReadCompoundTag(),
             NbtTagPrefix.End => new EmptyTag(),
             NbtTagPrefix.List => ReadList(),
@@ -121,55 +121,55 @@ public class NbtReader {
 
         switch (type) {
             case NbtTagPrefix.End:  // an empty list
-                return new ListTag(null, []);
+                return new ListTag([]);
             case NbtTagPrefix.String:
                 StringTag[] stringTags = new StringTag[length];
-                for (int i = 0; i < length; i++) stringTags[i] = new StringTag(null, ReadString());
-                return new ListTag<StringTag>(null, stringTags);
+                for (int i = 0; i < length; i++) stringTags[i] = new StringTag(ReadString());
+                return new ListTag<StringTag>(stringTags);
             case NbtTagPrefix.Byte:
                 ByteTag[] byteTags = new ByteTag[length];
-                for (int i = 0; i < length; i++) byteTags[i] = new ByteTag(null, ReadByte());
-                return new ListTag<ByteTag>(null, byteTags);
+                for (int i = 0; i < length; i++) byteTags[i] = new ByteTag(ReadByte());
+                return new ListTag<ByteTag>(byteTags);
             case NbtTagPrefix.Integer:
                 IntegerTag[] intTags = new IntegerTag[length];
-                for (int i = 0; i < length; i++) intTags[i] = new IntegerTag(null, ReadInteger());
-                return new ListTag<IntegerTag>(null, intTags);
+                for (int i = 0; i < length; i++) intTags[i] = new IntegerTag(ReadInteger());
+                return new ListTag<IntegerTag>(intTags);
             case NbtTagPrefix.Long:
                 LongTag[] longTags = new LongTag[length];
-                for (int i = 0; i < length; i++) longTags[i] = new LongTag(null, ReadLong());
-                return new ListTag<LongTag>(null, longTags);
+                for (int i = 0; i < length; i++) longTags[i] = new LongTag(ReadLong());
+                return new ListTag<LongTag>(longTags);
             case NbtTagPrefix.Short:
                 ShortTag[] shortTags = new ShortTag[length];
-                for (int i = 0; i < length; i++) shortTags[i] = new ShortTag(null, ReadShort());
-                return new ListTag<ShortTag>(null, shortTags);
+                for (int i = 0; i < length; i++) shortTags[i] = new ShortTag(ReadShort());
+                return new ListTag<ShortTag>(shortTags);
             case NbtTagPrefix.Float:
                 FloatTag[] floatTags = new FloatTag[length];
-                for (int i = 0; i < length; i++) floatTags[i] = new FloatTag(null, ReadFloat());
-                return new ListTag<FloatTag>(null, floatTags);
+                for (int i = 0; i < length; i++) floatTags[i] = new FloatTag(ReadFloat());
+                return new ListTag<FloatTag>(floatTags);
             case NbtTagPrefix.Double:
                 DoubleTag[] doubleTags = new DoubleTag[length];
-                for (int i = 0; i < length; i++) doubleTags[i] = new DoubleTag(null, ReadDouble());
-                return new ListTag<DoubleTag>(null, doubleTags);
+                for (int i = 0; i < length; i++) doubleTags[i] = new DoubleTag(ReadDouble());
+                return new ListTag<DoubleTag>(doubleTags);
             case NbtTagPrefix.List:
                 ListTag[] listTags = new ListTag[length];
                 for (int i = 0; i < length; i++) listTags[i] = ReadList();
-                return new ListTag<ListTag>(null, listTags);
+                return new ListTag<ListTag>(listTags);
             case NbtTagPrefix.Integers:
                 ArrayTag<int>[] intArrayTags = new ArrayTag<int>[length];
                 for (int i = 0; i < length; i++) intArrayTags[i] = ReadArray(ReadInteger);
-                return new ListTag<ArrayTag<int>>(null, intArrayTags);
+                return new ListTag<ArrayTag<int>>(intArrayTags);
             case NbtTagPrefix.Bytes:
                 ArrayTag<sbyte>[] byteArrayTags = new ArrayTag<sbyte>[length];
                 for (int i = 0; i < length; i++) byteArrayTags[i] = ReadArray(ReadByte);
-                return new ListTag<ArrayTag<sbyte>>(null, byteArrayTags);
+                return new ListTag<ArrayTag<sbyte>>(byteArrayTags);
             case NbtTagPrefix.Longs:
                 ArrayTag<long>[] longArrayTags = new ArrayTag<long>[length];
                 for (int i = 0; i < length; i++) longArrayTags[i] = ReadArray(ReadLong);
-                return new ListTag<ArrayTag<long>>(null, longArrayTags);
+                return new ListTag<ArrayTag<long>>(longArrayTags);
             case NbtTagPrefix.Compound:
                 CompoundTag[] compoundTags = new CompoundTag[length];
                 for (int i = 0; i < length; i++) compoundTags[i] = ReadCompoundTag();
-                return new ListTag<CompoundTag>(null, compoundTags);
+                return new ListTag<CompoundTag>(compoundTags);
         }
         
         throw new InvalidDataException($"Unknown type {type}");
@@ -181,7 +181,7 @@ public class NbtReader {
         for (int i = 0; i < length; i++) {
             vals[i] = readFunc();
         }
-        return new ArrayTag<T>(null, vals);
+        return new ArrayTag<T>(vals);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -250,53 +250,53 @@ public class NbtReader {
     }
 
     public CompoundTag ReadCompoundTag() {
-        List<INbtTag> children = [];
+        Dictionary<string, INbtTag?> children = [];
         
         // each child is written, but with a name this time.
         while (true) {
             byte type = Read();
             if (type == NbtTagPrefix.End) {
-                return new CompoundTag(null, children.ToArray());
+                return new CompoundTag(children);
             }
             
             string name = ReadString();
             
             switch (type) {
                 case NbtTagPrefix.String:
-                    children.Add(new StringTag(name, ReadString()));
+                    children.Add(name, new StringTag(ReadString()));
                     break;
                 case NbtTagPrefix.Byte:
-                    children.Add(new ByteTag(name, ReadByte()));
+                    children.Add(name, new ByteTag(ReadByte()));
                     break;
                 case NbtTagPrefix.Integer:
-                    children.Add(new IntegerTag(name, ReadInteger()));
+                    children.Add(name, new IntegerTag(ReadInteger()));
                     break;
                 case NbtTagPrefix.Long:
-                    children.Add(new LongTag(name, ReadLong()));
+                    children.Add(name, new LongTag(ReadLong()));
                     break;
                 case NbtTagPrefix.Short:
-                    children.Add(new ShortTag(name, ReadShort()));
+                    children.Add(name, new ShortTag(ReadShort()));
                     break;
                 case NbtTagPrefix.Float:
-                    children.Add(new FloatTag(name, ReadFloat()));
+                    children.Add(name, new FloatTag(ReadFloat()));
                     break;
                 case NbtTagPrefix.Double:
-                    children.Add(new DoubleTag(name, ReadDouble()));
+                    children.Add(name, new DoubleTag(ReadDouble()));
                     break;
                 case NbtTagPrefix.Compound:
-                    children.Add(ReadCompoundTag().WithName(name));
+                    children.Add(name, ReadCompoundTag());
                     break;
                 case NbtTagPrefix.List:
-                    children.Add(ReadList().WithName(name));
+                    children.Add(name, ReadList());
                     break;
                 case NbtTagPrefix.Integers:
-                    children.Add(ReadArray(ReadInteger).WithName(name));
+                    children.Add(name, ReadArray(ReadInteger));
                     break;
                 case NbtTagPrefix.Bytes:
-                    children.Add(ReadArray(ReadByte).WithName(name));
+                    children.Add(name, ReadArray(ReadByte));
                     break;
                 case NbtTagPrefix.Longs:
-                    children.Add(ReadArray(ReadLong).WithName(name));
+                    children.Add(name, ReadArray(ReadLong));
                     break;
                 default:
                     throw new InvalidDataException($"Unknown tag type {type}");

@@ -42,7 +42,7 @@ public class BinaryBlobTest {
 
         // BooleanTag has no distinct wire format — it deserialises as ByteTag
         INbtTag expected = original is BooleanTag
-            ? new ByteTag(original.GetName(), ((ByteTag)original).Value)
+            ? new ByteTag(((ByteTag)original).Value)
             : original;
 
         Assert.That(deserialized, Is.EqualTo(expected),
@@ -63,13 +63,13 @@ public class BinaryBlobTest {
             }
         }
         // Nested compounds are common in Anvil (entities, block entities, etc.)
-        yield return new TestCaseData("NestedCompound", new CompoundTag(null,
-            new CompoundTag("pos",
-                new IntegerTag("x", 100),
-                new IntegerTag("y", 64),
-                new IntegerTag("z", -200)
-            ),
-            new StringTag("id", "minecraft:zombie")
+        yield return new TestCaseData("NestedCompound", new CompoundTag(
+            ("pos", new CompoundTag(
+                ("x", new IntegerTag(100)),
+                ("y", new IntegerTag(64)),
+                ("z", new IntegerTag(-200))
+            )),
+            ("id", new StringTag("minecraft:zombie"))
         )).SetName("ImpliedRoot_NestedCompound");
     }
 
