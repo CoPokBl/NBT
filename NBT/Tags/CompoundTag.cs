@@ -30,18 +30,16 @@ public class CompoundTag : INbtTag, IEquatable<CompoundTag> {
         _children = children;
     }
     
-    public CompoundTag(IDictionary<string, INbtTag?> children) {
+    public CompoundTag(IDictionary<string, INbtTag> children) {
         _children = new OrderedDictionary();
-        foreach ((string key, INbtTag? tag) in children) {
-            if (tag == null) continue;
+        foreach ((string key, INbtTag tag) in children) {
             _children.Add(key, tag);
         }
     }
 
-    public CompoundTag(params (string, INbtTag?)[] children) {
+    public CompoundTag(params (string, INbtTag)[] children) {
         _children = new OrderedDictionary();
-        foreach ((string key, INbtTag? tag) in children) {
-            if (tag == null) continue;
+        foreach ((string key, INbtTag tag) in children) {
             _children.Add(key, tag);
         }
     }

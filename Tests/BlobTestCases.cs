@@ -27,7 +27,7 @@ internal static class BlobTestCases {
         ("IntArrayTag",        new ArrayTag<int>(1, 2, 3)),
         ("LongArrayTag",       new ArrayTag<long>(1L, 2L)),
         ("ListTagIntegers",    new ListTag<IntegerTag>([new IntegerTag(1), new IntegerTag(2)])),
-        ("CompoundTagEmpty",   new CompoundTag(new Dictionary<string, INbtTag?>())),
+        ("CompoundTagEmpty",   new CompoundTag()),
         ("CompoundTagComplex", new CompoundTag(
             ("name", new StringTag("Steve")),
             ("level", new IntegerTag(10)),

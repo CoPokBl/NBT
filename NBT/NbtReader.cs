@@ -250,7 +250,7 @@ public class NbtReader {
     }
 
     public CompoundTag ReadCompoundTag() {
-        Dictionary<string, INbtTag?> children = [];
+        Dictionary<string, INbtTag> children = [];
         
         // each child is written, but with a name this time.
         while (true) {

@@ -97,7 +97,7 @@ public interface INbtTag {
     public static INbtTag FromJson(JToken json) {
         if (json is JObject obj) {
             // compound tag
-            Dictionary<string, INbtTag?> tags = [];
+            Dictionary<string, INbtTag> tags = [];
             foreach ((string key, JToken? value) in obj) {
                 if (value == null) throw new NullReferenceException("Json value in compound tag is null");
                 tags.Add(key, FromJson(value));
