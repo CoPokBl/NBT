@@ -13,21 +13,28 @@
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         
         <PackageId>MinecraftDotnet.NBT</PackageId>
-        <Version>1.0.3</Version>
+        <Version>1.1.0</Version>
         <Title>NBT</Title>
         <Authors>CoPokBl</Authors>
         <Description>An NBT library with full support for Minecraft structured NBT.</Description>
         <PackageProjectUrl>https://github.com/CoPokBl/MinecraftDotnet</PackageProjectUrl>
         <RepositoryUrl>https://github.com/CoPokBl/MinecraftDotnet.git</RepositoryUrl>
-        <PackageLicenseUrl>https://github.com/CoPokBl/MinecraftDotnet/blob/main/LICENSE</PackageLicenseUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+
+        <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+      <None Include="..\README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.400">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="Newtonsoft.Json" Version="13.0.4-beta1" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     </ItemGroup>
 
 </Project>

@@ -26,9 +26,11 @@ public interface INbtTag {
     NbtBuilder Write(NbtBuilder builder, bool noType = false);
 
     public static string ToJsonString(INbtTag tag) {
-        return JsonConvert.SerializeObject(ToJson(tag));
+        // Formatting.None is required: the no arg ToString writes a JValue as its raw value
+        // (True, hello there, 19) rather than as JSON (true, "hello there", 19.0).
+        return ToJson(tag).ToString(Formatting.None);
     }
-    
+
     public static JToken ToJson(INbtTag tag) {
         switch (tag) {
             case EmptyTag:
@@ -91,9 +93,9 @@ public interface INbtTag {
     }
 
     public static INbtTag FromJson(string json) {
-        return FromJson(JsonConvert.DeserializeObject<JToken>(json)!);
+        return FromJson(JToken.Parse(json));
     }
-    
+
     public static INbtTag FromJson(JToken json) {
         if (json is JObject obj) {
             // compound tag
@@ -109,34 +111,50 @@ public interface INbtTag {
         if (json is JArray arr) {
             // list tag
             List<INbtTag> tags = [];
+            bool hasLong = false;
             foreach (JToken item in arr) {
-                tags.Add(FromJson(item));
+                INbtTag itemTag = FromJson(item);
+                hasLong |= itemTag is LongTag;
+                tags.Add(itemTag);
             }
-            
+
+            if (hasLong) {
+                // All elements of a list tag must be the same type, so widen the ints to longs.
+                for (int i = 0; i < tags.Count; i++) {
+                    if (tags[i] is IntegerTag intTag) {
+                        tags[i] = new LongTag(intTag.Value);
+                    }
+                }
+            }
+
             return new ListTag(tags.ToArray());
         }
-        
+
         // primitive tag
         if (json.Type == JTokenType.Null) {
             return new EmptyTag();
         }
-        
+
         if (json.Type == JTokenType.Boolean) {
-            return new BooleanTag(json.ToObject<bool>());
+            return new BooleanTag((bool)json);
         }
-        
+
         if (json.Type == JTokenType.String) {
             return new StringTag(json.ToString());
         }
-        
+
         if (json.Type == JTokenType.Integer) {
-            return new IntegerTag(json.ToObject<int>());
+            long value = (long)json;
+            if (value is < int.MinValue or > int.MaxValue) {
+                return new LongTag(value);  // too big to fit in an int
+            }
+            return new IntegerTag((int)value);
         }
-        
+
         if (json.Type == JTokenType.Float) {
-            return new DoubleTag(json.ToObject<double>());  // use high precision for doubles
+            return new DoubleTag((double)json);  // use high precision for doubles
         }
-        
+
         throw new NotImplementedException("Cannot create tag from JSON of type " + json.Type + ".");
     }
 }
@@ -153,7 +171,7 @@ public static class TagExtensions {
     
     public static sbyte GetByte(this INbtTag? tag) {
         if (tag is IntegerTag i) {
-            if (i.Value is > 128 or < -128) {
+            if (i.Value is > sbyte.MaxValue or < sbyte.MinValue) {
                 throw new ArgumentOutOfRangeException("Integer value out of range for sbyte: " + i.Value);
             }
             return (sbyte)i.Value;  // convert int to byte
@@ -165,12 +183,36 @@ public static class TagExtensions {
         if (tag is FloatTag fl) {
             return fl.Value;
         }
+        if (tag is IntegerTag it) {
+            return it.Value;
+        }
+        if (tag is LongTag lo) {
+            return lo.Value;
+        }
+        if (tag is ShortTag sh) {
+            return sh.Value;
+        }
+        if (tag is ByteTag by) {
+            return by.Value;
+        }
         return ((DoubleTag)tag!).Value;
     }
     
     public static float GetFloat(this INbtTag? tag) {
         if (tag is DoubleTag d) {
             return (float)d.Value;  // convert double to float
+        }
+        if (tag is IntegerTag it) {
+            return it.Value;
+        }
+        if (tag is LongTag lo) {
+            return lo.Value;
+        }
+        if (tag is ShortTag sh) {
+            return sh.Value;
+        }
+        if (tag is ByteTag by) {
+            return by.Value;
         }
         return ((FloatTag)tag!).Value;
     }

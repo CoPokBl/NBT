@@ -42,16 +42,16 @@ public class Tests {
             CompoundTag comp = (CompoundTag)tag;
             
             Assert.That(comp.ChildCount, Is.EqualTo(2));
-            Assert.Multiple(() => {
+            using (Assert.EnterMultipleScope()) {
                 Assert.That(comp.Children.First().child, Is.AssignableTo(typeof(ByteTag)));
                 Assert.That(((ByteTag)comp.Children.First().child).Value, Is.EqualTo(0x01));
                 Assert.That(comp.Children.First().key, Is.EqualTo("potato"));
-            });
-            Assert.Multiple(() => {
+            }
+            using (Assert.EnterMultipleScope()) {
                 Assert.That(comp.Children.Skip(1).First().child, Is.AssignableTo(typeof(IntegerTag)));
                 Assert.That(((IntegerTag)comp.Children.Skip(1).First().child).Value, Is.EqualTo(7));
                 Assert.That(comp.Children.Skip(1).First().key, Is.EqualTo("someint"));
-            });
+            }
         });
         TestTagNoErrors(new ListTag<IntegerTag>(
         [
@@ -62,14 +62,14 @@ public class Tests {
             ListTag<IntegerTag> comp = (ListTag<IntegerTag>)tag;
             Assert.That(comp.Tags.Length, Is.EqualTo(2));
             
-            Assert.Multiple(() => {
+            using (Assert.EnterMultipleScope()) {
                 Assert.That(comp.Tags[0], Is.AssignableTo(typeof(IntegerTag)));
                 Assert.That(comp.Tags[0].Value, Is.EqualTo(7));
-            });
-            Assert.Multiple(() => {
+            }
+            using (Assert.EnterMultipleScope()) {
                 Assert.That(comp.Tags[1], Is.AssignableTo(typeof(IntegerTag)));
                 Assert.That(comp.Tags[1].Value, Is.EqualTo(2));
-            });
+            }
         });
         
         // More complex
@@ -87,11 +87,37 @@ public class Tests {
         Assert.That(deserialised, Is.AssignableTo(typeof(CompoundTag)));
         CompoundTag deserialisedComp = (CompoundTag)deserialised;
         Assert.That(deserialisedComp.ChildCount, Is.EqualTo(4));
-        Assert.Multiple(() => {
+        using (Assert.EnterMultipleScope()) {
             Assert.That(deserialisedComp.Children.First().child, Is.AssignableTo(typeof(StringTag)));
             Assert.That(((StringTag)deserialisedComp.Children.First().child).Value, Is.EqualTo("Test"));
             Assert.That(deserialisedComp.Children.First().key, Is.EqualTo("name"));
-        });
+        }
+    }
+
+    /// <summary>
+    /// Binary NBT keeps byte and short tags as they are, so a field written as a byte or a short
+    /// still has to widen when read back as a float or a double.
+    /// </summary>
+    [Test]
+    public void DeserialisedWholeNumbers_CoerceToFloatAndDouble() {
+        CompoundTag original = new(
+            ("byte", new ByteTag(-7)),
+            ("short", new ShortTag(300)),
+            ("int", new IntegerTag(70000)),
+            ("long", new LongTag(5_000_000_000L)));
+        
+        CompoundTag tag = (CompoundTag)NbtReader.ReadNbt(original.Serialise());
+        
+        using (Assert.EnterMultipleScope()) {
+            Assert.That(tag["byte"].GetDouble(), Is.EqualTo(-7d));
+            Assert.That(tag["byte"].GetFloat(), Is.EqualTo(-7f));
+            Assert.That(tag["short"].GetDouble(), Is.EqualTo(300d));
+            Assert.That(tag["short"].GetFloat(), Is.EqualTo(300f));
+            Assert.That(tag["int"].GetDouble(), Is.EqualTo(70000d));
+            Assert.That(tag["int"].GetFloat(), Is.EqualTo(70000f));
+            Assert.That(tag["long"].GetDouble(), Is.EqualTo(5_000_000_000d));
+            Assert.That(tag["long"].GetFloat(), Is.EqualTo(5_000_000_000f));
+        }
     }
 
     private static void TestTagNoErrors(INbtTag tag, Action<INbtTag>? checker = null) {
